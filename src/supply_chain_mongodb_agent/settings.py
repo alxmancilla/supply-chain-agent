@@ -1,5 +1,6 @@
 from functools import lru_cache
 from typing import Literal
+from urllib.parse import urlparse
 
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -81,19 +82,35 @@ class Settings(BaseSettings):
     def effective_llm_api_key_header(self) -> str | None:
         if self.llm_api_key_header:
             return self.llm_api_key_header
+        if self._base_url_uses_header_auth:
+            return "api-key"
         if self.effective_llm_provider == "grove":
             return "api-key"
         return None
 
     @property
     def effective_llm_use_responses_api(self) -> bool:
+        if self._base_url_uses_header_auth:
+            return True
         if self.llm_use_responses_api is not None:
             return self.llm_use_responses_api
         return self.effective_llm_provider == "grove"
 
     @property
+    def effective_llm_base_url_configured(self) -> bool:
+        return self.effective_llm_base_url is not None
+
+    @property
     def _uses_legacy_grove_settings(self) -> bool:
         return not self._secret_configured(self.llm_api_key) and self.grove_api_key_configured
+
+    @property
+    def _base_url_uses_header_auth(self) -> bool:
+        base_url = self.effective_llm_base_url
+        if not base_url:
+            return False
+        host = urlparse(base_url).netloc.lower()
+        return "azure-api.net" in host
 
     @staticmethod
     def _secret_configured(secret: SecretStr | None) -> bool:

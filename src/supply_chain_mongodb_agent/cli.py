@@ -95,6 +95,9 @@ def smoke() -> None:
         else {
             "provider": settings.effective_llm_provider,
             "model": settings.effective_llm_model,
+            "base_url_configured": settings.effective_llm_base_url_configured,
+            "custom_api_key_header": bool(settings.effective_llm_api_key_header),
+            "responses_api": settings.effective_llm_use_responses_api,
             "api_key_configured": settings.llm_api_key_configured,
         }
     )

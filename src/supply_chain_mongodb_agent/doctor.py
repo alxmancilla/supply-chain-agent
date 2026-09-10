@@ -22,6 +22,12 @@ def doctor_report(settings: Settings | None = None) -> list[dict[str, Any]]:
         return checks
 
     checks.append(_check("llm_provider", True, settings.effective_llm_provider))
+    checks.append(_check("llm_base_url", True, "configured" if settings.effective_llm_base_url_configured else "default provider URL"))
+    checks.append(_check(
+        "llm_auth_strategy",
+        True,
+        "custom API-key header" if settings.effective_llm_api_key_header else "standard bearer token",
+    ))
     checks.append(_check(
         "llm_api_key",
         settings.llm_api_key_configured,

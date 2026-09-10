@@ -68,3 +68,16 @@ def test_llm_settings_support_openai_compatible_provider() -> None:
     assert settings.effective_llm_base_url == "https://llm.example/v1"
     assert settings.effective_llm_model == "provider-model"
     assert build_chat_model(settings).model_name == "provider-model"
+
+
+def test_llm_settings_auto_detect_header_gateway() -> None:
+    settings = Settings(
+        demo_mode="atlas",
+        llm_api_key="test-key",
+        llm_base_url="https://gateway.azure-api.net/openai/v1",
+        llm_model="provider-model",
+        llm_use_responses_api=False,
+        grove_api_key=None,
+    )
+    assert settings.effective_llm_api_key_header == "api-key"
+    assert settings.effective_llm_use_responses_api is True
