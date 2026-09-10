@@ -89,15 +89,23 @@ def approve(thread_id: str = "demo-thread") -> None:
 def smoke() -> None:
     """Show non-sensitive effective configuration."""
     settings = get_settings()
+    llm_status = (
+        {"provider": "not used in local mode", "model": "not used in local mode", "api_key_configured": "not required"}
+        if settings.demo_mode == "local"
+        else {
+            "provider": settings.effective_llm_provider,
+            "model": settings.effective_llm_model,
+            "api_key_configured": settings.llm_api_key_configured,
+        }
+    )
     console.print({
         "demo_mode": settings.demo_mode,
         "db": settings.mongodb_db,
         "realm_id": settings.realm_id,
         "agent_id": settings.agent_id,
-        "grove_model": settings.grove_model,
+        "llm": llm_status,
         "embedding_model": settings.atlas_embedding_model,
         "rerank_model": settings.atlas_rerank_model,
-        "grove_api_key_configured": settings.grove_api_key_configured,
     })
 
 

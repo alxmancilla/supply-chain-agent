@@ -21,10 +21,11 @@ def doctor_report(settings: Settings | None = None) -> list[dict[str, Any]]:
         ])
         return checks
 
+    checks.append(_check("llm_provider", True, settings.effective_llm_provider))
     checks.append(_check(
-        "grove_api_key",
-        settings.grove_api_key_configured,
-        "configured" if settings.grove_api_key_configured else "missing or placeholder",
+        "llm_api_key",
+        settings.llm_api_key_configured,
+        "configured" if settings.llm_api_key_configured else "missing or placeholder",
     ))
     try:
         client = get_client(settings)

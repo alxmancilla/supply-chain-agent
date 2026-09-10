@@ -7,7 +7,7 @@ from langgraph.store.mongodb import MongoDBStore
 from pymongo import MongoClient
 
 from supply_chain_mongodb_agent.db import get_database
-from supply_chain_mongodb_agent.grove import build_grove_chat
+from supply_chain_mongodb_agent.llm import build_chat_model
 from supply_chain_mongodb_agent.local_agent import build_local_demo_agent
 from supply_chain_mongodb_agent.prompts import SYSTEM_PROMPT
 from supply_chain_mongodb_agent.settings import Settings, get_settings
@@ -32,7 +32,7 @@ def build_agent(client: MongoClient | None, settings: Settings | None = None) ->
         },
     )
     return create_deep_agent(
-        model=build_grove_chat(settings),
+        model=build_chat_model(settings),
         tools=build_tools(db, settings),
         system_prompt=SYSTEM_PROMPT,
         checkpointer=MongoDBSaver(client, db_name=settings.mongodb_db),

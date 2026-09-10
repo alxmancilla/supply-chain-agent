@@ -9,7 +9,7 @@ The project has two modes:
   to use with prospects and customers who want to clone and run immediately.
 - **Atlas mode**: optional connected mode using MongoDB Atlas, Atlas Vector
   Search automated embeddings, native `$rerank`, MongoDB-backed LangGraph state,
-  MongoDB-backed long-term memory, and the Grove OpenAI-compatible gateway.
+  MongoDB-backed long-term memory, and a configurable OpenAI-compatible LLM.
 
 ## What it demonstrates
 
@@ -42,7 +42,7 @@ Local mode uses deterministic seeded sample documents in process. It does not
 write to a database and does not call an LLM provider. Responses are intentionally
 predictable so the repository is safe to share and easy to test.
 
-## Optional: connected Atlas + Grove mode
+## Optional: connected Atlas + LLM mode
 
 Copy the example environment file and set `DEMO_MODE=atlas`:
 
@@ -55,7 +55,27 @@ Fill in the required values:
 - `DEMO_MODE=atlas`
 - `MONGODB_URI`
 - `MONGODB_DB`
-- `GROVE_API_KEY`
+- `LLM_API_KEY`
+- `LLM_MODEL`
+- `LLM_BASE_URL`, optional for providers that do not use the default OpenAI API
+
+The connected agent uses `langchain-openai`, so any OpenAI-compatible endpoint is
+easy to swap in:
+
+```bash
+LLM_PROVIDER=openai_compatible
+LLM_API_KEY=<your-llm-api-key>
+LLM_BASE_URL=https://your-provider.example/v1
+LLM_MODEL=<your-model-name>
+```
+
+For gateways that expect API keys in a custom header instead of the standard
+Authorization header, also set:
+
+```bash
+LLM_API_KEY_HEADER=api-key
+LLM_USE_RESPONSES_API=true
+```
 
 Then bootstrap data and indexes:
 
@@ -130,4 +150,4 @@ uv run python -m pytest
 uv run python -m ruff check
 ```
 
-Offline tests do not require Atlas, Voyage, or Grove credentials.
+Offline tests do not require Atlas, Voyage, or LLM credentials.

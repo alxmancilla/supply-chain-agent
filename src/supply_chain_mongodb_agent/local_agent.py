@@ -118,7 +118,7 @@ def _compose_answer(
         f"- **Risk:** {risk}.\n"
         f"- **Recommendation:** {recommendation}\n"
         f"- **Evidence:** {sources}.{episode_line}{memory_line}\n\n"
-        "Switch to `DEMO_MODE=atlas` to use MongoDBSaver checkpoints, MongoDBStore memory, Atlas Vector Search auto-embedding, native `$rerank`, and Grove."
+        "Switch to `DEMO_MODE=atlas` to use MongoDBSaver checkpoints, MongoDBStore memory, Atlas Vector Search auto-embedding, native `$rerank`, and a connected LLM."
     )
 
 
