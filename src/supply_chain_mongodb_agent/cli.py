@@ -22,6 +22,42 @@ console = Console()
 
 
 @app.command()
+def demo(local: bool = typer.Option(False, "--local", help="Force the credential-free local walkthrough.")) -> None:
+    """Run a guided demo walkthrough."""
+    settings = get_settings()
+    if local:
+        settings = settings.model_copy(update={"demo_mode": "local"})
+
+    client = None if settings.demo_mode == "local" else get_client(settings)
+    agent = build_agent(client, settings)
+    questions = [
+        "Shipment SH-1043 for BRK-22 is 6 days late. What are my options?",
+        "Have we handled a BRK-22 port delay before? What worked last time?",
+        "Draft an approval request to expedite SH-1043 with premium freight because BRK-22 has under 3 days of cover.",
+    ]
+    console.print(f"[bold]Supply Chain Agent {settings.demo_mode} demo[/bold]")
+    if settings.demo_mode == "local":
+        console.print("No credentials, database, or LLM are required.\n")
+    else:
+        console.print("Using MongoDB Atlas, Atlas retrieval, LangGraph state, memory, and your configured LLM.\n")
+    try:
+        for question in questions:
+            console.print(f"[bold cyan]You:[/bold cyan] {question}")
+            result = agent.invoke(
+                {"messages": [{"role": "user", "content": question}]},
+                config={"configurable": {"thread_id": "demo-thread"}},
+            )
+            console.print(f"[bold green]Agent:[/bold green] {extract_latest_text(result) or format_pending_approval(result)}\n")
+        console.print("[bold]Approve the pending action:[/bold]")
+        console.print("uv run supply-chain-agent approve --thread-id demo-thread")
+        console.print("\n[bold]Ask your own question:[/bold]")
+        console.print('uv run supply-chain-agent ask "Shipment SH-3110 is delayed. Do we need premium freight?"')
+    finally:
+        if client is not None:
+            client.close()
+
+
+@app.command()
 def seed() -> None:
     """Seed demo operational, corpus, and memory documents."""
     settings = get_settings()

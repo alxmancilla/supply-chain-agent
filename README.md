@@ -3,6 +3,10 @@
 Customer-shareable demo showing best practices for a stateful supply-chain agent
 with MongoDB operational data, agent memory, retrieval, and human approval.
 
+This repo is intentionally demo-first. A beginner should be able to clone it,
+run one command, see useful agent behavior, and then inspect the code to learn
+how the pieces fit together.
+
 The project has two modes:
 
 - **Local mode**: default, deterministic, and credential-free. This is the path
@@ -27,6 +31,17 @@ The project has two modes:
 ```bash
 uv sync
 uv run supply-chain-agent doctor
+uv run supply-chain-agent demo --local
+```
+
+The guided demo asks three representative questions, shows a deterministic
+answer, and demonstrates a simulated human approval pause. It does not need
+MongoDB, Atlas, an LLM API key, or network access after dependencies are
+installed.
+
+Ask your own question:
+
+```bash
 uv run supply-chain-agent ask "Shipment SH-1043 for BRK-22 is 6 days late. What are my options?"
 ```
 
@@ -41,6 +56,19 @@ Open the URL printed by Streamlit, usually `http://localhost:8501`.
 Local mode uses deterministic seeded sample documents in process. It does not
 write to a database and does not call an LLM provider. Responses are intentionally
 predictable so the repository is safe to share and easy to test.
+
+## What to look at first
+
+If you are new to agentic development, start with these files:
+
+- `src/supply_chain_mongodb_agent/local_agent.py`: the credential-free agent path.
+- `src/supply_chain_mongodb_agent/tools.py`: the tools the connected agent can call.
+- `src/supply_chain_mongodb_agent/agent.py`: where local mode and Atlas mode are wired.
+- `src/supply_chain_mongodb_agent/seed.py`: the demo operational data, knowledge, memories, and prior incidents.
+- `src/supply_chain_mongodb_agent/streamlit_app.py`: the small UI wrapper.
+
+The local path is deliberately plain Python so the behavior is easy to follow
+before adding LangGraph state, Atlas Vector Search, and an LLM.
 
 ## Optional: connected Atlas + LLM mode
 
@@ -88,7 +116,13 @@ uv run supply-chain-agent indexes
 `indexes` creates Atlas Search / Vector Search definitions for `autoEmbed`.
 Native `$rerank` must also be enabled in Atlas Project Settings on MongoDB 8.3+.
 
-Ask the connected agent:
+Run the same guided walkthrough against Atlas and your configured LLM:
+
+```bash
+uv run supply-chain-agent demo
+```
+
+Or ask the connected agent directly:
 
 ```bash
 uv run supply-chain-agent ask "Shipment SH-1043 for part BRK-22 is late. What are my options?"

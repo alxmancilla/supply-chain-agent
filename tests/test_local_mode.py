@@ -1,12 +1,17 @@
+from typer.testing import CliRunner
+
 from supply_chain_mongodb_agent.agent import (
     build_agent,
     extract_latest_text,
     format_pending_approval,
 )
+from supply_chain_mongodb_agent.cli import app
 from supply_chain_mongodb_agent.doctor import doctor_ok, doctor_report
 from supply_chain_mongodb_agent.llm import build_chat_model
 from supply_chain_mongodb_agent.local_agent import approve_local_demo
 from supply_chain_mongodb_agent.settings import Settings
+
+runner = CliRunner()
 
 
 def test_local_agent_answers_without_credentials() -> None:
@@ -20,6 +25,14 @@ def test_local_agent_answers_without_credentials() -> None:
     assert "Local demo mode" in answer
     assert "SH-1043" in answer
     assert "SOP-EXP-01" in answer or "AVL-BRK-22" in answer
+
+
+def test_guided_demo_runs_without_credentials() -> None:
+    result = runner.invoke(app, ["demo", "--local"], env={"DEMO_MODE": "atlas", "LLM_API_KEY": "", "GROVE_API_KEY": ""})
+    assert result.exit_code == 0
+    assert "No credentials, database, or LLM are required" in result.output
+    assert "SH-1043" in result.output
+    assert "Pending human approval" in result.output
 
 
 def test_local_agent_formats_pending_approval() -> None:
