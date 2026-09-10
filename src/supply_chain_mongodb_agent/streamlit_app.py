@@ -15,9 +15,9 @@ st.caption("MongoDB Atlas operational data + state + memory + auto-embedding + r
 
 settings = get_settings()
 st.info(
-    "Running in credential-free local demo mode. Set `DEMO_MODE=atlas` for MongoDB Atlas + Grove."
+    "Running in credential-free local demo mode. Set `DEMO_MODE=atlas` for MongoDB Atlas + LLM."
     if settings.demo_mode == "local"
-    else "Running in connected Atlas/Grove mode."
+    else "Running in connected Atlas/LLM mode."
 )
 examples = [
     "Shipment SH-1043 for BRK-22 is 6 days late. What are my options?",
@@ -31,7 +31,7 @@ question = st.text_area("Ask about a disruption", example, height=110)
 thread_id = st.text_input("Thread ID", "demo-thread")
 
 if st.button("Ask agent"):
-    spinner = "Reasoning with local sample data..." if settings.demo_mode == "local" else "Reasoning with MongoDB + Grove..."
+    spinner = "Reasoning with local sample data..." if settings.demo_mode == "local" else "Reasoning with MongoDB + LLM..."
     with st.spinner(spinner):
         client = None if settings.demo_mode == "local" else get_client(settings)
         try:
