@@ -8,3 +8,6 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Local secrets and environment-specific settings
+.env
