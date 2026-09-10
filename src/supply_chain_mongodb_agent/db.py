@@ -12,7 +12,11 @@ def get_client(settings: Settings | None = None) -> MongoClient:
     connection metrics before changing pool parameters for production.
     """
     settings = settings or get_settings()
-    return MongoClient(settings.mongodb_uri, appname="supply-chain-agent-demo")
+    return MongoClient(
+        settings.mongodb_uri,
+        appname="supply-chain-agent-demo",
+        serverSelectionTimeoutMS=settings.mongodb_server_selection_timeout_ms,
+    )
 
 
 def get_database(client: MongoClient, settings: Settings | None = None) -> Database:

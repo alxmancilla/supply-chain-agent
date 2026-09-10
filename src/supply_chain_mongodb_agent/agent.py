@@ -8,13 +8,18 @@ from pymongo import MongoClient
 
 from supply_chain_mongodb_agent.db import get_database
 from supply_chain_mongodb_agent.grove import build_grove_chat
+from supply_chain_mongodb_agent.local_agent import build_local_demo_agent
 from supply_chain_mongodb_agent.prompts import SYSTEM_PROMPT
 from supply_chain_mongodb_agent.settings import Settings, get_settings
 from supply_chain_mongodb_agent.tools import build_tools
 
 
-def build_agent(client: MongoClient, settings: Settings | None = None) -> Any:
+def build_agent(client: MongoClient | None, settings: Settings | None = None) -> Any:
     settings = settings or get_settings()
+    if settings.demo_mode == "local":
+        return build_local_demo_agent(settings)
+    if client is None:
+        raise ValueError("A MongoDB client is required when DEMO_MODE=atlas")
     db = get_database(client, settings)
     store = MongoDBStore(db.deep_agent_store)
     backend = CompositeBackend(
@@ -60,6 +65,8 @@ def format_pending_approval(result: dict[str, Any]) -> str:
     lines: list[str] = []
     for interrupt in interrupts:
         value = getattr(interrupt, "value", {}) or {}
+        if not value and isinstance(interrupt, dict):
+            value = interrupt.get("value", {}) or {}
         for request in value.get("action_requests", []):
             args = request.get("args", {})
             lines.extend([

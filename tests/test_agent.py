@@ -42,3 +42,9 @@ def test_format_pending_approval() -> None:
     formatted = format_pending_approval({"__interrupt__": [Interrupt()]})
     assert "Pending human approval" in formatted
     assert "SH-1" in formatted
+
+
+def test_format_pending_approval_supports_dict_interrupts() -> None:
+    formatted = format_pending_approval({"__interrupt__": [{"value": {"action_requests": [{"name": "submit_action_for_approval", "args": {"shipment_id": "SH-2"}}]}}]})
+    assert "Pending human approval" in formatted
+    assert "SH-2" in formatted

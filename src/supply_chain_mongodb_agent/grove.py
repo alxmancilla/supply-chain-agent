@@ -5,7 +5,7 @@ from supply_chain_mongodb_agent.settings import Settings, get_settings
 
 def build_grove_chat(settings: Settings | None = None) -> ChatOpenAI:
     settings = settings or get_settings()
-    if settings.grove_api_key is None:
+    if not settings.grove_api_key_configured:
         raise ValueError("GROVE_API_KEY is required to build the Grove chat model")
     grove_key = settings.grove_api_key.get_secret_value()
     return ChatOpenAI(
