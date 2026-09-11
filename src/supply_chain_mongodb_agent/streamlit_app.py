@@ -10,81 +10,279 @@ from supply_chain_mongodb_agent.db import get_client
 from supply_chain_mongodb_agent.doctor import doctor_report
 from supply_chain_mongodb_agent.local_agent import approve_local_demo
 from supply_chain_mongodb_agent.settings import get_settings
+from supply_chain_mongodb_agent.ui import (
+    DEMO_PROMPTS,
+    format_prompt_option,
+    mode_name,
+    mode_summary,
+    readiness_status,
+    readiness_summary,
+)
 from supply_chain_mongodb_agent.workflow import workflow_diagram_dot, workflow_notes
 
-st.set_page_config(page_title="Supply Chain Agent", page_icon="🚚")
-st.title("🚚 Supply Chain Resolution Agent")
-st.caption("MongoDB Atlas operational data + state + memory + auto-embedding + rerank")
+st.set_page_config(page_title="Supply Chain Agent", page_icon="🚚", layout="wide")
 
-settings = get_settings()
-st.info(
-    "Running in credential-free local demo mode. Set `DEMO_MODE=atlas` for MongoDB Atlas + LLM."
-    if settings.demo_mode == "local"
-    else "Running in connected Atlas/LLM mode."
-)
-ask_tab, workflow_tab, readiness_tab = st.tabs(["Ask Agent", "Workflow", "Readiness"])
 
-with ask_tab:
-    examples = [
-        "Shipment SH-1043 for BRK-22 is 6 days late. What are my options?",
-        "Have we handled a BRK-22 port delay before? What worked last time?",
-        "Compare this CELL-9 quality hold with prior incidents and recommend next steps.",
-        "Shipment SH-3110 is delayed. Do we need premium freight?",
-        "Draft an approval request to expedite SH-1043 with premium freight because BRK-22 has under 3 days of cover.",
-    ]
-    example = st.selectbox("Try a demo query", examples)
-    question = st.text_area("Ask about a disruption", example, height=110)
-    thread_id = st.text_input("Thread ID", "demo-thread")
+def _inject_styles() -> None:
+    st.markdown(
+        """
+        <style>
+        .hero-card {
+            border: 1px solid #dbeafe;
+            border-radius: 20px;
+            padding: 1.4rem 1.6rem;
+            background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 58%, #ecfeff 100%);
+        }
+        .hero-card h1 { margin-bottom: 0.2rem; }
+        .muted { color: #475569; }
+        .pill {
+            display: inline-block;
+            border-radius: 999px;
+            padding: 0.18rem 0.65rem;
+            background: #dbeafe;
+            color: #1e40af;
+            font-size: 0.82rem;
+            font-weight: 700;
+            margin-right: 0.35rem;
+        }
+        .section-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 1rem;
+            background: #ffffff;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    if st.button("Ask agent"):
-        spinner = "Reasoning with local sample data..." if settings.demo_mode == "local" else "Reasoning with MongoDB + LLM..."
-        with st.spinner(spinner):
-            client = None if settings.demo_mode == "local" else get_client(settings)
-            try:
+
+def _init_session_state() -> None:
+    st.session_state.setdefault("last_answer", "")
+    st.session_state.setdefault("last_error", "")
+    st.session_state.setdefault("last_metadata", {})
+
+
+def _run_agent(question: str, thread_id: str) -> None:
+    spinner = (
+        "Reasoning with local sample data..."
+        if settings.demo_mode == "local"
+        else "Reasoning with MongoDB Atlas + LLM..."
+    )
+    with st.spinner(spinner):
+        client = None if settings.demo_mode == "local" else get_client(settings)
+        try:
+            agent = build_agent(client, settings)
+            result = agent.invoke(
+                {"messages": [{"role": "user", "content": question}]},
+                config={"configurable": {"thread_id": thread_id}},
+            )
+            st.session_state.last_answer = (
+                extract_latest_text(result) or format_pending_approval(result)
+            )
+            st.session_state.last_error = ""
+            st.session_state.last_metadata = {
+                "mode": settings.demo_mode,
+                "thread_id": thread_id,
+                "database": settings.mongodb_db,
+                "realm_id": settings.realm_id,
+                "agent_id": settings.agent_id,
+                "user_id": settings.user_id,
+            }
+        except Exception as exc:  # noqa: BLE001 - UI boundary needs guided errors.
+            st.session_state.last_answer = ""
+            st.session_state.last_error = exc.__class__.__name__
+        finally:
+            if client is not None:
+                client.close()
+
+
+def _approve_action(thread_id: str) -> None:
+    spinner = (
+        "Recording local approval..."
+        if settings.demo_mode == "local"
+        else "Resuming persisted LangGraph checkpoint..."
+    )
+    with st.spinner(spinner):
+        client = None if settings.demo_mode == "local" else get_client(settings)
+        try:
+            if settings.demo_mode == "local":
+                result = approve_local_demo(thread_id)
+            else:
                 agent = build_agent(client, settings)
                 result = agent.invoke(
-                    {"messages": [{"role": "user", "content": question}]},
+                    Command(resume={"decisions": [{"type": "approve"}]}),
                     config={"configurable": {"thread_id": thread_id}},
                 )
-                answer = extract_latest_text(result) or format_pending_approval(result)
-                st.markdown(answer)
-                with st.expander("Demo metadata"):
-                    st.json({"mode": settings.demo_mode, "thread_id": thread_id, "db": settings.mongodb_db})
-            except Exception as exc:  # noqa: BLE001 - UI boundary should show guided errors.
-                st.error(f"Demo request failed: {exc.__class__.__name__}")
-                st.caption("Run `uv run supply-chain-agent doctor` for non-sensitive readiness checks.")
-            finally:
-                if client is not None:
-                    client.close()
+            st.session_state.last_answer = (
+                extract_latest_text(result) or format_pending_approval(result)
+            )
+            st.session_state.last_error = ""
+            st.session_state.last_metadata = {
+                "mode": settings.demo_mode,
+                "thread_id": thread_id,
+                "approval": "approved",
+            }
+        except Exception as exc:  # noqa: BLE001 - UI boundary needs guided errors.
+            st.session_state.last_error = exc.__class__.__name__
+        finally:
+            if client is not None:
+                client.close()
 
-    if st.button("Approve pending action"):
-        spinner = "Recording local approval..." if settings.demo_mode == "local" else "Resuming persisted LangGraph checkpoint..."
-        with st.spinner(spinner):
-            client = None if settings.demo_mode == "local" else get_client(settings)
-            try:
-                if settings.demo_mode == "local":
-                    result = approve_local_demo(thread_id)
-                else:
-                    agent = build_agent(client, settings)
-                    result = agent.invoke(
-                        Command(resume={"decisions": [{"type": "approve"}]}),
-                        config={"configurable": {"thread_id": thread_id}},
-                    )
-                st.markdown(extract_latest_text(result) or format_pending_approval(result))
-            except Exception as exc:  # noqa: BLE001 - UI boundary should show guided errors.
-                st.error(f"Approval resume failed: {exc.__class__.__name__}")
-                st.caption("Use the same thread ID that produced the pending approval.")
-            finally:
-                if client is not None:
-                    client.close()
+
+def _render_answer_panel() -> None:
+    if st.session_state.last_error:
+        st.error(f"Request failed: {st.session_state.last_error}")
+        st.caption("Run `uv run supply-chain-agent doctor` for safe readiness checks.")
+        return
+    if not st.session_state.last_answer:
+        st.info("Choose a scenario, then ask the agent to generate a recommendation.")
+        return
+    if "Pending human approval" in st.session_state.last_answer:
+        st.warning("This response is paused for human approval.")
+    else:
+        st.success("Agent response ready")
+    st.markdown(st.session_state.last_answer)
+    with st.expander("Run details"):
+        st.json(st.session_state.last_metadata)
+
+
+def _render_sidebar() -> str:
+    with st.sidebar:
+        st.header("Demo controls")
+        st.metric("Runtime", mode_name(settings.demo_mode))
+        st.caption(mode_summary(settings.demo_mode))
+        thread_id = st.text_input("Thread ID", "demo-thread")
+
+        st.divider()
+        st.subheader("Scoped actor")
+        st.caption(f"Realm: `{settings.realm_id}`")
+        st.caption(f"Agent: `{settings.agent_id}`")
+        st.caption(f"User: `{settings.user_id}`")
+
+        st.divider()
+        st.subheader("What to demo")
+        st.caption("1. Ask a disruption question")
+        st.caption("2. Inspect cited reasoning")
+        st.caption("3. Trigger approval with the approval workflow prompt")
+        st.caption("4. Approve using the same thread ID")
+        return thread_id
+
+
+settings = get_settings()
+_inject_styles()
+_init_session_state()
+thread_id = _render_sidebar()
+
+st.markdown(
+    f"""
+    <div class="hero-card">
+      <span class="pill">{mode_name(settings.demo_mode)}</span>
+      <span class="pill">Atlas-ready</span>
+      <span class="pill">Human-in-the-loop</span>
+      <h1>🚚 Supply Chain Resolution Agent</h1>
+      <p class="muted">
+        A stateful agent demo for disruption analysis, evidence retrieval,
+        memory recall, and approval-gated actions on MongoDB Atlas.
+      </p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.write("")
+metric_cols = st.columns(4)
+metric_cols[0].metric("Operational data", "Shipments + inventory")
+metric_cols[1].metric("Knowledge", "Vector Search")
+metric_cols[2].metric("State", "LangGraph")
+metric_cols[3].metric("Memory", "MongoDBStore")
+
+ask_tab, workflow_tab, readiness_tab = st.tabs([
+    "💬 Ask Agent",
+    "🧭 Workflow",
+    "✅ Readiness",
+])
+
+with ask_tab:
+    left, right = st.columns([0.62, 0.38], gap="large")
+    with left:
+        st.subheader("Run a guided disruption scenario")
+        selected_prompt = st.selectbox(
+            "Scenario",
+            DEMO_PROMPTS,
+            format_func=format_prompt_option,
+        )
+        question = st.text_area(
+            "Question for the agent",
+            selected_prompt.question,
+            height=140,
+            help="Use the approval workflow prompt to demonstrate pause/resume.",
+        )
+        ask_col, approve_col, clear_col = st.columns([0.38, 0.38, 0.24])
+        if ask_col.button("Ask agent", type="primary", width="stretch"):
+            _run_agent(question, thread_id)
+        if approve_col.button("Approve pending action", width="stretch"):
+            _approve_action(thread_id)
+        if clear_col.button("Clear", width="stretch"):
+            st.session_state.last_answer = ""
+            st.session_state.last_error = ""
+            st.session_state.last_metadata = {}
+
+        st.divider()
+        _render_answer_panel()
+
+    with right:
+        st.subheader("Demo story")
+        st.markdown(
+            """
+            <div class="section-card">
+              <b>What the viewer should notice</b>
+              <ul>
+                <li>The agent grounds recommendations in operational data.</li>
+                <li>Atlas Vector Search retrieves SOPs, memories, and incidents.</li>
+                <li>LangGraph keeps the thread resumable across approval pauses.</li>
+                <li>State-changing actions are drafted, not executed blindly.</li>
+              </ul>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.info(selected_prompt.intent)
+        st.caption("Tip: keep the same thread ID when approving a pending action.")
 
 with workflow_tab:
-    st.subheader("Agent workflow")
+    st.subheader("How the agent works")
+    st.caption(
+        "The main path is shown first; framework and MongoDB services appear as "
+        "supporting callouts so the workflow is easier to follow."
+    )
     st.graphviz_chart(workflow_diagram_dot(), width="stretch")
-    for note in workflow_notes():
-        st.markdown(f"- {note}")
+
+    role_cols = st.columns(3)
+    role_cols[0].info("**LangChain**\n\nTool wrappers and model interfaces.")
+    role_cols[1].info("**LangGraph**\n\nState transitions, checkpoints, interrupts.")
+    role_cols[2].info("**Deep Agents**\n\nPlanning and tool-use loop.")
+
+    with st.expander("Architecture notes", expanded=True):
+        for note in workflow_notes():
+            st.markdown(f"- {note}")
 
 with readiness_tab:
-    st.subheader("Readiness checks")
+    st.subheader("Readiness dashboard")
     st.caption("Non-sensitive status only; secrets are never printed.")
-    st.json(doctor_report(settings))
+    checks = doctor_report(settings)
+    summary = readiness_summary(checks)
+
+    status_cols = st.columns(3)
+    status_cols[0].metric("Status", readiness_status(checks))
+    status_cols[1].metric("Passing checks", summary["passing"])
+    status_cols[2].metric("Failing checks", summary["failing"])
+
+    for check in checks:
+        icon = "✅" if check["ok"] else "⚠️"
+        with st.container(border=True):
+            st.markdown(f"{icon} **{check['name']}**")
+            st.caption(check["detail"])
+
+    with st.expander("Raw readiness payload"):
+        st.json(checks)
