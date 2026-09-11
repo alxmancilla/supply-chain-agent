@@ -22,7 +22,10 @@ console = Console()
 
 
 @app.command()
-def demo(local: bool = typer.Option(False, "--local", help="Force the credential-free local walkthrough.")) -> None:
+def demo(
+    local: bool = typer.Option(False, "--local", help="Force the credential-free local walkthrough."),
+    thread_id: str = typer.Option("demo-thread", "--thread-id", help="Thread ID used for state and approval resume."),
+) -> None:
     """Run a guided demo walkthrough."""
     settings = get_settings()
     if local:
@@ -36,6 +39,7 @@ def demo(local: bool = typer.Option(False, "--local", help="Force the credential
         "Draft an approval request to expedite SH-1043 with premium freight because BRK-22 has under 3 days of cover.",
     ]
     console.print(f"[bold]Supply Chain Agent {settings.demo_mode} demo[/bold]")
+    console.print(f"Thread: {thread_id}")
     if settings.demo_mode == "local":
         console.print("No credentials, database, or LLM are required.\n")
     else:
@@ -45,11 +49,11 @@ def demo(local: bool = typer.Option(False, "--local", help="Force the credential
             console.print(f"[bold cyan]You:[/bold cyan] {question}")
             result = agent.invoke(
                 {"messages": [{"role": "user", "content": question}]},
-                config={"configurable": {"thread_id": "demo-thread"}},
+                config={"configurable": {"thread_id": thread_id}},
             )
             console.print(f"[bold green]Agent:[/bold green] {extract_latest_text(result) or format_pending_approval(result)}\n")
         console.print("[bold]Approve the pending action:[/bold]")
-        console.print("uv run supply-chain-agent approve --thread-id demo-thread")
+        console.print(f"uv run supply-chain-agent approve --thread-id {thread_id}")
         console.print("\n[bold]Ask your own question:[/bold]")
         console.print('uv run supply-chain-agent ask "Shipment SH-3110 is delayed. Do we need premium freight?"')
     finally:

@@ -38,8 +38,10 @@ def doctor_report(settings: Settings | None = None) -> list[dict[str, Any]]:
         db = get_database(client, settings)
         client.admin.command("ping")
         checks.append(_check("mongodb_connection", True, f"connected to database {settings.mongodb_db!r}"))
-        checks.append(_check("seed_data", db.shipments.count_documents({"realm_id": settings.realm_id}) > 0, "shipments collection has demo data"))
-        checks.append(_check("search_indexes", _has_search_indexes(db, settings), "Atlas Search / Vector Search indexes detected"))
+        seed_check = _seed_data_check(db, settings)
+        checks.append(_check("seed_data", seed_check["ok"], seed_check["detail"]))
+        index_check = _search_index_check(db, settings)
+        checks.append(_check("search_indexes", index_check["ok"], index_check["detail"]))
         client.close()
     except PyMongoError as exc:
         checks.append(_check("mongodb_connection", False, exc.__class__.__name__))
@@ -55,12 +57,36 @@ def _sample_data_ready(settings: Settings) -> bool:
     return all(docs.get(name) for name in ("shipments", "knowledge_corpus", "agent_memories", "agent_episodes"))
 
 
-def _has_search_indexes(db: Any, settings: Settings) -> bool:
+def _seed_data_check(db: Any, settings: Settings) -> dict[str, Any]:
+    realm_scope = {"realm_id": settings.realm_id}
+    actor_scope = realm_scope | {"agent_id": settings.agent_id, "user_id": settings.user_id}
+    required = {
+        "shipments": (db.shipments, realm_scope),
+        "knowledge_corpus": (db.knowledge_corpus, realm_scope),
+        "agent_memories": (db.agent_memories, actor_scope),
+        "agent_episodes": (db.agent_episodes, actor_scope),
+    }
+    missing = [name for name, (collection, query) in required.items() if collection.count_documents(query) == 0]
+    if missing:
+        return {"ok": False, "detail": f"missing scoped demo data: {', '.join(missing)}; run `uv run supply-chain-agent seed`"}
+    return {"ok": True, "detail": "scoped demo data is available"}
+
+
+def _search_index_check(db: Any, settings: Settings) -> dict[str, Any]:
     expected = {settings.knowledge_vector_index, settings.memory_vector_index, settings.episode_vector_index}
-    found: set[str] = set()
+    found: dict[str, str] = {}
     for collection in (db.knowledge_corpus, db.agent_memories, db.agent_episodes):
-        found.update(index.get("name", "") for index in collection.list_search_indexes())
-    return expected <= found
+        for index in collection.list_search_indexes():
+            name = index.get("name", "")
+            if name:
+                found[name] = index.get("status") or index.get("queryable") or "exists"
+    missing = sorted(expected - set(found))
+    if missing:
+        return {"ok": False, "detail": f"missing indexes: {', '.join(missing)}; run `uv run supply-chain-agent indexes`"}
+    not_ready = sorted(name for name in expected if str(found[name]).upper() not in {"READY", "QUERYABLE", "TRUE", "EXISTS"})
+    if not_ready:
+        return {"ok": False, "detail": f"indexes found but not ready yet: {', '.join(not_ready)}; wait and rerun doctor"}
+    return {"ok": True, "detail": "Atlas Search / Vector Search indexes detected"}
 
 
 def _check(name: str, ok: bool, detail: str) -> dict[str, Any]:

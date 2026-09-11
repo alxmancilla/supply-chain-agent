@@ -35,16 +35,18 @@ def knowledge_pipeline(query: str, settings: Settings | None = None, limit: int 
 
 def memory_pipeline(query: str, settings: Settings | None = None, limit: int = 3) -> list[dict[str, Any]]:
     settings = settings or get_settings()
+    scope = {"realm_id": settings.realm_id, "agent_id": settings.agent_id, "user_id": settings.user_id}
     return [
-        {"$vectorSearch": {"index": settings.memory_vector_index, "path": "content", "query": query, "model": settings.atlas_embedding_model, "numCandidates": max(limit * 20, 100), "limit": limit, "filter": {"realm_id": settings.realm_id, "user_id": settings.user_id}}},
+        {"$vectorSearch": {"index": settings.memory_vector_index, "path": "content", "query": query, "model": settings.atlas_embedding_model, "numCandidates": max(limit * 20, 100), "limit": limit, "filter": scope}},
         {"$project": {"_id": 0, "memory_id": 1, "content": 1}},
     ]
 
 
 def episode_pipeline(query: str, settings: Settings | None = None, limit: int = 3) -> list[dict[str, Any]]:
     settings = settings or get_settings()
+    scope = {"realm_id": settings.realm_id, "agent_id": settings.agent_id, "user_id": settings.user_id}
     return [
-        {"$vectorSearch": {"index": settings.episode_vector_index, "path": "content", "query": query, "model": settings.atlas_embedding_model, "numCandidates": max(limit * 20, 100), "limit": limit, "filter": {"realm_id": settings.realm_id, "user_id": settings.user_id}}},
+        {"$vectorSearch": {"index": settings.episode_vector_index, "path": "content", "query": query, "model": settings.atlas_embedding_model, "numCandidates": max(limit * 20, 100), "limit": limit, "filter": scope}},
         {"$project": {"_id": 0, "episode_id": 1, "incident_type": 1, "related_parts": 1, "outcome": 1, "content": 1, "resolved_at": 1}},
     ]
 

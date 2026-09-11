@@ -1,4 +1,5 @@
 import streamlit as st
+from langgraph.types import Command
 
 from supply_chain_mongodb_agent.agent import (
     build_agent,
@@ -7,6 +8,7 @@ from supply_chain_mongodb_agent.agent import (
 )
 from supply_chain_mongodb_agent.db import get_client
 from supply_chain_mongodb_agent.doctor import doctor_report
+from supply_chain_mongodb_agent.local_agent import approve_local_demo
 from supply_chain_mongodb_agent.settings import get_settings
 
 st.set_page_config(page_title="Supply Chain Agent", page_icon="🚚")
@@ -47,6 +49,27 @@ if st.button("Ask agent"):
         except Exception as exc:  # noqa: BLE001 - UI boundary should show guided errors.
             st.error(f"Demo request failed: {exc.__class__.__name__}")
             st.caption("Run `uv run supply-chain-agent doctor` for non-sensitive readiness checks.")
+        finally:
+            if client is not None:
+                client.close()
+
+if st.button("Approve pending action"):
+    spinner = "Recording local approval..." if settings.demo_mode == "local" else "Resuming persisted LangGraph checkpoint..."
+    with st.spinner(spinner):
+        client = None if settings.demo_mode == "local" else get_client(settings)
+        try:
+            if settings.demo_mode == "local":
+                result = approve_local_demo(thread_id)
+            else:
+                agent = build_agent(client, settings)
+                result = agent.invoke(
+                    Command(resume={"decisions": [{"type": "approve"}]}),
+                    config={"configurable": {"thread_id": thread_id}},
+                )
+            st.markdown(extract_latest_text(result) or format_pending_approval(result))
+        except Exception as exc:  # noqa: BLE001 - UI boundary should show guided errors.
+            st.error(f"Approval resume failed: {exc.__class__.__name__}")
+            st.caption("Use the same thread ID that produced the pending approval.")
         finally:
             if client is not None:
                 client.close()

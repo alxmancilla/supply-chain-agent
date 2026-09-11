@@ -5,13 +5,14 @@ with MongoDB operational data, agent memory, retrieval, and human approval.
 
 This repo is intentionally demo-first. A beginner should be able to clone it,
 run one command, see useful agent behavior, and then inspect the code to learn
-how the pieces fit together.
+how the pieces fit together. If you are presenting the project, start with
+`DEMO.md`.
 
 The project has two modes:
 
 - **Local mode**: default, deterministic, and credential-free. This is the path
   to use with prospects and customers who want to clone and run immediately.
-- **Atlas mode**: optional connected mode using MongoDB Atlas, Atlas Vector
+- **Atlas mode**: connected showcase mode using MongoDB Atlas, Atlas Vector
   Search automated embeddings, native `$rerank`, MongoDB-backed LangGraph state,
   MongoDB-backed long-term memory, and a configurable OpenAI-compatible LLM.
 
@@ -70,7 +71,7 @@ If you are new to agentic development, start with these files:
 The local path is deliberately plain Python so the behavior is easy to follow
 before adding LangGraph state, Atlas Vector Search, and an LLM.
 
-## Optional: connected Atlas + LLM mode
+## Atlas showcase: connected Atlas + LLM mode
 
 Copy the example environment file and set `DEMO_MODE=atlas`:
 
@@ -173,7 +174,8 @@ LangGraph checkpoint.
   database writes, deterministic outputs.
 - Atlas mode is the platform showcase: it demonstrates real MongoDB-backed state,
   memory, vector search, automated embeddings, and reranking.
-- All seeded documents include tenant scope to model multi-tenant isolation.
+- Seeded memories, episodes, and action drafts include tenant, agent, and user
+  scope to model actor-aware isolation.
 - The approval tool drafts actions instead of pretending to execute them.
 - `doctor` reports non-sensitive readiness and never prints secrets.
 

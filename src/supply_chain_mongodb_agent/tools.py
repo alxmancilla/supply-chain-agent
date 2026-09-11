@@ -41,7 +41,7 @@ def build_tools(db: Database, settings: Settings | None = None) -> list[Any]:
 
     @tool
     def recall_planner_memory(query: str, limit: int = 3) -> list[dict[str, Any]]:
-        """Recall user-scoped long-term memories from MongoDB Atlas Vector Search."""
+        """Recall agent/user-scoped long-term memories from MongoDB Atlas Vector Search."""
         return run_pipeline_with_rerank_fallback(db.agent_memories, memory_pipeline(query, settings, limit))
 
     @tool
@@ -54,6 +54,7 @@ def build_tools(db: Database, settings: Settings | None = None) -> list[Any]:
         """Draft a state-changing action. Human approval is required before execution."""
         draft = {
             "realm_id": settings.realm_id,
+            "agent_id": settings.agent_id,
             "user_id": settings.user_id,
             "draft_id": f"draft-{uuid4().hex[:10]}",
             "action_type": action_type,
@@ -72,6 +73,7 @@ def build_tools(db: Database, settings: Settings | None = None) -> list[Any]:
         memory_id = f"mem-{uuid4().hex[:10]}"
         db.agent_memories.insert_one({
             "realm_id": settings.realm_id,
+            "agent_id": settings.agent_id,
             "user_id": settings.user_id,
             "memory_id": memory_id,
             "content": summary,

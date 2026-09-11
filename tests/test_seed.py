@@ -6,11 +6,13 @@ from supply_chain_mongodb_agent.seed import (
 from supply_chain_mongodb_agent.settings import Settings
 
 
-def test_seed_documents_are_tenant_scoped() -> None:
-    settings = Settings(realm_id="realm-test", user_id="u1")
+def test_seed_documents_are_tenant_agent_and_user_scoped() -> None:
+    settings = Settings(realm_id="realm-test", agent_id="agent-test", user_id="u1")
     docs = demo_documents(settings)
     assert docs["shipments"][0]["realm_id"] == "realm-test"
+    assert docs["agent_memories"][0]["agent_id"] == "agent-test"
     assert docs["agent_memories"][0]["user_id"] == "u1"
+    assert docs["agent_episodes"][0]["agent_id"] == "agent-test"
     assert docs["agent_episodes"][0]["user_id"] == "u1"
 
 

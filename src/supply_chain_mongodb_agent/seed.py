@@ -87,6 +87,7 @@ def memory_documents(settings: Settings | None = None) -> list[dict[str, Any]]:
     return [
         {
             "realm_id": settings.realm_id,
+            "agent_id": settings.agent_id,
             "user_id": settings.user_id,
             "memory_id": "planner-air-freight-pref",
             "content": "Planner prefers premium freight for Tier-1 parts when days of cover is below three.",
@@ -97,7 +98,7 @@ def memory_documents(settings: Settings | None = None) -> list[dict[str, Any]]:
 
 def episode_documents(settings: Settings | None = None) -> list[dict[str, Any]]:
     settings = settings or get_settings()
-    base = {"realm_id": settings.realm_id, "user_id": settings.user_id}
+    base = {"realm_id": settings.realm_id, "agent_id": settings.agent_id, "user_id": settings.user_id}
     return [
         base | {
             "episode_id": "ep-brk22-port-delay",
@@ -149,4 +150,6 @@ def _identity_key(collection: str, doc: dict[str, Any]) -> dict[str, Any]:
     }[collection]
     if collection == "inventory":
         return {"realm_id": doc["realm_id"], "part_id": doc["part_id"], "site": doc["site"]}
+    if collection in {"agent_memories", "agent_episodes"}:
+        return {"realm_id": doc["realm_id"], "agent_id": doc["agent_id"], "user_id": doc["user_id"], key_field: doc[key_field]}
     return {"realm_id": doc["realm_id"], key_field: doc[key_field]}

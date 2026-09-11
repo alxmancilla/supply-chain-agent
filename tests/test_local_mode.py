@@ -6,7 +6,12 @@ from supply_chain_mongodb_agent.agent import (
     format_pending_approval,
 )
 from supply_chain_mongodb_agent.cli import app
-from supply_chain_mongodb_agent.doctor import doctor_ok, doctor_report
+from supply_chain_mongodb_agent.doctor import (
+    _search_index_check,
+    _seed_data_check,
+    doctor_ok,
+    doctor_report,
+)
 from supply_chain_mongodb_agent.llm import build_chat_model
 from supply_chain_mongodb_agent.local_agent import approve_local_demo
 from supply_chain_mongodb_agent.settings import Settings
@@ -28,8 +33,9 @@ def test_local_agent_answers_without_credentials() -> None:
 
 
 def test_guided_demo_runs_without_credentials() -> None:
-    result = runner.invoke(app, ["demo", "--local"], env={"DEMO_MODE": "atlas", "LLM_API_KEY": "", "GROVE_API_KEY": ""})
+    result = runner.invoke(app, ["demo", "--local", "--thread-id", "walkthrough"], env={"DEMO_MODE": "atlas", "LLM_API_KEY": "", "GROVE_API_KEY": ""})
     assert result.exit_code == 0
+    assert "Thread: walkthrough" in result.output
     assert "No credentials, database, or LLM are required" in result.output
     assert "SH-1043" in result.output
     assert "Pending human approval" in result.output
@@ -54,6 +60,62 @@ def test_local_doctor_is_ok_without_credentials() -> None:
     checks = doctor_report(Settings(demo_mode="local", llm_api_key=None, grove_api_key=None))
     assert doctor_ok(checks)
     assert {check["name"] for check in checks} >= {"demo_mode", "sample_data", "credentials"}
+
+
+def test_search_index_check_reports_missing_indexes() -> None:
+    class Collection:
+        def list_search_indexes(self) -> list[dict[str, str]]:
+            return []
+
+    class Db:
+        knowledge_corpus = Collection()
+        agent_memories = Collection()
+        agent_episodes = Collection()
+
+    result = _search_index_check(Db(), Settings())
+    assert not result["ok"]
+    assert "missing indexes" in result["detail"]
+
+
+def test_seed_data_check_requires_agent_scoped_memory() -> None:
+    class Collection:
+        def __init__(self, count: int) -> None:
+            self.count = count
+
+        def count_documents(self, query: dict[str, str]) -> int:
+            if "agent_id" in query and query["agent_id"] != "agent-test":
+                return 0
+            return self.count
+
+    class Db:
+        shipments = Collection(1)
+        knowledge_corpus = Collection(1)
+        agent_memories = Collection(1)
+        agent_episodes = Collection(1)
+
+    result = _seed_data_check(Db(), Settings(realm_id="realm-test", agent_id="agent-test", user_id="user-test"))
+    assert result["ok"]
+    missing = _seed_data_check(Db(), Settings(realm_id="realm-test", agent_id="other-agent", user_id="user-test"))
+    assert not missing["ok"]
+    assert "agent_memories" in missing["detail"]
+
+
+def test_search_index_check_reports_indexes_not_ready() -> None:
+    class Collection:
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+        def list_search_indexes(self) -> list[dict[str, str]]:
+            return [{"name": self.name, "status": "BUILDING"}]
+
+    class Db:
+        knowledge_corpus = Collection("knowledge_corpus_autoembed")
+        agent_memories = Collection("agent_memories_autoembed")
+        agent_episodes = Collection("agent_episodes_autoembed")
+
+    result = _search_index_check(Db(), Settings())
+    assert not result["ok"]
+    assert "not ready" in result["detail"]
 
 
 def test_placeholder_llm_key_is_not_configured() -> None:
