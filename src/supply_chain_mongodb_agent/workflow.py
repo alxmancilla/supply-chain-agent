@@ -33,6 +33,9 @@ digraph supply_chain_agent {
 
 def workflow_notes() -> list[str]:
     return [
+        "LangChain provides the tool/model interfaces used to connect the agent to MongoDB data and the configured LLM.",
+        "LangGraph manages stateful execution, checkpoints, and human-approval interrupts/resume semantics.",
+        "Deep Agents assembles the LangGraph agent loop that plans, calls tools, reasons over evidence, and produces the final answer.",
         "Uses MongoDB Atlas collections for operational data, memory, checkpoints, and action drafts.",
         "Retrieves knowledge, memories, and prior incidents with Atlas Vector Search auto-embedding and rerank.",
         "Scopes memory/action data with realm_id, agent_id, and user_id before invoking the configured LLM.",

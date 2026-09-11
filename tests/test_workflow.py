@@ -23,5 +23,8 @@ def test_workflow_diagram_only_shows_atlas_flow() -> None:
 def test_workflow_notes_describe_atlas_architecture() -> None:
     atlas_notes = "\n".join(workflow_notes())
 
+    assert "LangChain" in atlas_notes
+    assert "LangGraph" in atlas_notes
+    assert "Deep Agents" in atlas_notes
     assert "MongoDB Atlas" in atlas_notes
     assert "realm_id, agent_id, and user_id" in atlas_notes
