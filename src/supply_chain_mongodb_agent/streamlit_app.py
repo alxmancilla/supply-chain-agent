@@ -238,11 +238,14 @@ with workflow_tab:
     )
     st.graphviz_chart(workflow_diagram_dot(), width="stretch")
 
-    role_cols = st.columns(4)
-    role_cols[0].info("**LangChain**\n\nTool wrappers and model interfaces.")
-    role_cols[1].info("**LangGraph**\n\nState transitions, checkpoints, interrupts.")
-    role_cols[2].info("**Deep Agents**\n\nPlanning and tool-use loop.")
-    role_cols[3].info("**MongoDB Atlas**\n\nOperational data, vector search, checkpoints, and memory.")
+    role_cols = st.columns(2)
+    role_cols[0].info(
+        "**Agent frameworks**\n\n"
+        "**LangChain:** tool wrappers and model interfaces.\n\n"
+        "**LangGraph:** state transitions, checkpoints, interrupts.\n\n"
+        "**Deep Agents:** planning and tool-use loop."
+    )
+    role_cols[1].info("**MongoDB Atlas**\n\nOperational data, vector search, checkpoints, and memory.")
 
     with st.expander("Architecture notes", expanded=True):
         for note in workflow_notes():
