@@ -204,51 +204,31 @@ ask_tab, workflow_tab, readiness_tab = st.tabs([
 ])
 
 with ask_tab:
-    left, right = st.columns([0.62, 0.38], gap="large")
-    with left:
-        st.subheader("Run a guided disruption scenario")
-        selected_prompt = st.selectbox(
-            "Scenario",
-            DEMO_PROMPTS,
-            format_func=format_prompt_option,
-        )
-        question = st.text_area(
-            "Question for the agent",
-            selected_prompt.question,
-            height=140,
-            help="Use the approval workflow prompt to demonstrate pause/resume.",
-        )
-        ask_col, approve_col, clear_col = st.columns([0.38, 0.38, 0.24])
-        if ask_col.button("Ask agent", type="primary", width="stretch"):
-            _run_agent(question, thread_id)
-        if approve_col.button("Approve pending action", width="stretch"):
-            _approve_action(thread_id)
-        if clear_col.button("Clear", width="stretch"):
-            st.session_state.last_answer = ""
-            st.session_state.last_error = ""
-            st.session_state.last_metadata = {}
+    st.subheader("Run a guided disruption scenario")
+    selected_prompt = st.selectbox(
+        "Scenario",
+        DEMO_PROMPTS,
+        format_func=format_prompt_option,
+    )
+    st.caption(selected_prompt.intent)
+    question = st.text_area(
+        "Question for the agent",
+        selected_prompt.question,
+        height=140,
+        help="Use the approval workflow prompt to demonstrate pause/resume.",
+    )
+    ask_col, approve_col, clear_col = st.columns([0.38, 0.38, 0.24])
+    if ask_col.button("Ask agent", type="primary", width="stretch"):
+        _run_agent(question, thread_id)
+    if approve_col.button("Approve pending action", width="stretch"):
+        _approve_action(thread_id)
+    if clear_col.button("Clear", width="stretch"):
+        st.session_state.last_answer = ""
+        st.session_state.last_error = ""
+        st.session_state.last_metadata = {}
 
-        st.divider()
-        _render_answer_panel()
-
-    with right:
-        st.subheader("Demo story")
-        st.markdown(
-            """
-            <div class="section-card">
-              <b>What the viewer should notice</b>
-              <ul>
-                <li>The agent grounds recommendations in operational data.</li>
-                <li>Atlas Vector Search retrieves SOPs, memories, and incidents.</li>
-                <li>LangGraph keeps the thread resumable across approval pauses.</li>
-                <li>State-changing actions are drafted, not executed blindly.</li>
-              </ul>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        st.info(selected_prompt.intent)
-        st.caption("Tip: keep the same thread ID when approving a pending action.")
+    st.divider()
+    _render_answer_panel()
 
 with workflow_tab:
     st.subheader("How the agent works")
