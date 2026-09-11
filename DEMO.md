@@ -21,7 +21,7 @@ What this shows:
 - It combines live-style data with policy/playbook context.
 - It recalls a prior incident.
 - It pauses before a state-changing action.
-- It can resume a simulated approval.
+- It can resume a simulated approval or rejection in the Streamlit UI.
 
 Try the approval resume:
 
@@ -80,7 +80,7 @@ Run the guided Atlas walkthrough:
 uv run supply-chain-agent demo --thread-id atlas-demo-001
 ```
 
-Approve the pending action:
+Approve the pending action from the CLI walkthrough:
 
 ```bash
 uv run supply-chain-agent approve --thread-id atlas-demo-001
@@ -96,12 +96,13 @@ uv run python -m streamlit run src/supply_chain_mongodb_agent/streamlit_app.py
 
 Demo flow:
 
-1. Pick the late `SH-1043` example.
+1. Open **Ask Agent** and pick the late `SH-1043` example.
 2. Ask the agent.
 3. Pick the approval request example.
 4. Ask the agent again.
-5. Click **Approve pending action** using the same thread ID.
-6. Open **Readiness checks** to show local or Atlas configuration status.
+5. Click **Approve pending action** or **Reject pending action** using the same thread ID.
+6. Open **Workflow** to explain LangChain, LangGraph, Deep Agents, and MongoDB Atlas.
+7. Open **Readiness** to show local or Atlas configuration status.
 
 ## 4. What Just Happened
 
@@ -114,6 +115,7 @@ In Atlas mode, the agent uses these pieces:
 - `submit_action_for_approval`: drafts a state-changing action and pauses for human approval.
 - `MongoDBSaver`: persists LangGraph thread state.
 - `MongoDBStore`: persists long-term agent memory.
+- The Streamlit UI can resume the pending action with approval or rejection.
 
 ## Troubleshooting
 
@@ -130,4 +132,4 @@ Common fixes:
 - No seed data: run `uv run supply-chain-agent seed`.
 - Missing indexes: run `uv run supply-chain-agent indexes`.
 - Indexes not ready: wait and rerun `uv run supply-chain-agent doctor`.
-- Approval does not resume: use the same `--thread-id` that created the pending approval.
+- Approval/rejection does not resume: use the same thread ID that created the pending approval.

@@ -64,3 +64,19 @@ def readiness_status(checks: list[dict[str, Any]]) -> str:
     if summary["failing"] == 0:
         return "Ready"
     return f"Needs attention: {summary['failing']} check(s) failing"
+
+
+def error_guidance(error_name: str, demo_mode: str) -> list[str]:
+    guidance = ["Run `uv run supply-chain-agent doctor` for safe readiness checks."]
+    if demo_mode == "local":
+        guidance.append("Local mode should not require Atlas or LLM credentials; retry from a fresh thread ID.")
+        return guidance
+    if "Authentication" in error_name or "Unauthorized" in error_name:
+        guidance.append("Check `LLM_API_KEY`, `LLM_BASE_URL`, and `LLM_API_KEY_HEADER` in `.env`.")
+    elif "OperationFailure" in error_name:
+        guidance.append("Check Atlas Search / Vector Search indexes with `uv run supply-chain-agent indexes`.")
+    elif "ServerSelection" in error_name or "Connection" in error_name:
+        guidance.append("Check `MONGODB_URI`, Atlas network access, and your IP access list.")
+    else:
+        guidance.append("If this happened during approval, reuse the same Thread ID that created the pending request.")
+    return guidance

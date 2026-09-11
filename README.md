@@ -35,7 +35,7 @@ uv run supply-chain-agent doctor
 uv run supply-chain-agent demo --local
 ```
 
-The guided demo asks three representative questions, shows a deterministic
+The guided demo asks representative questions, shows a deterministic
 answer, and demonstrates a simulated human approval pause. It does not need
 MongoDB, Atlas, an LLM API key, or network access after dependencies are
 installed.
@@ -53,6 +53,12 @@ uv run python -m streamlit run src/supply_chain_mongodb_agent/streamlit_app.py
 ```
 
 Open the URL printed by Streamlit, usually `http://localhost:8501`.
+
+The UI has three tabs:
+
+- **Ask Agent**: run guided disruption scenarios and approve or reject pending actions.
+- **Workflow**: explain the Atlas-connected agent lifecycle and supporting frameworks.
+- **Readiness**: show non-sensitive local/Atlas setup checks.
 
 Local mode uses deterministic seeded sample documents in process. It does not
 write to a database and does not call an LLM provider. Responses are intentionally
@@ -79,7 +85,8 @@ Copy the example environment file and set `DEMO_MODE=atlas`:
 cp .env.example .env
 ```
 
-Fill in the required values:
+Fill in the required values. Keep real secrets in `.env` only; `.env` should
+remain untracked.
 
 - `DEMO_MODE=atlas`
 - `MONGODB_URI`
@@ -137,14 +144,19 @@ Try this in either CLI or Streamlit:
 uv run supply-chain-agent ask "Draft an approval request to expedite SH-1043 with premium freight because BRK-22 has under 3 days of cover."
 ```
 
-Then resume the same thread:
+In Streamlit, keep the same Thread ID and click either:
+
+- **Approve pending action** to continue with the drafted action.
+- **Reject pending action** to resume without executing the drafted action.
+
+In the CLI walkthrough, resume the same thread with approval:
 
 ```bash
 uv run supply-chain-agent approve --thread-id demo-thread
 ```
 
-In local mode this approval is simulated. In Atlas mode it resumes the persisted
-LangGraph checkpoint.
+In local mode the approval/rejection path is simulated. In Atlas mode it resumes
+the persisted LangGraph checkpoint.
 
 ## Suggested demo queries
 
@@ -178,6 +190,23 @@ LangGraph checkpoint.
   scope to model actor-aware isolation.
 - The approval tool drafts actions instead of pretending to execute them.
 - `doctor` reports non-sensitive readiness and never prints secrets.
+
+## Troubleshooting quick guide
+
+Start with:
+
+```bash
+uv run supply-chain-agent doctor
+```
+
+Common fixes:
+
+- Missing LLM key: set `LLM_API_KEY` in `.env`, or return to `DEMO_MODE=local`.
+- LLM gateway auth fails: check `LLM_BASE_URL`, `LLM_API_KEY_HEADER`, and `LLM_USE_RESPONSES_API`.
+- MongoDB connection fails: check `MONGODB_URI`, Atlas network access, and the IP access list.
+- No scoped demo data: run `uv run supply-chain-agent seed`.
+- Missing or stale indexes: run `uv run supply-chain-agent indexes`, wait, then rerun `doctor`.
+- Approval or rejection does not resume: use the same Thread ID that created the pending request.
 
 ## Tests
 

@@ -1,5 +1,6 @@
 from supply_chain_mongodb_agent.ui import (
     DEMO_PROMPTS,
+    error_guidance,
     format_prompt_option,
     mode_name,
     mode_summary,
@@ -38,3 +39,12 @@ def test_readiness_summary_and_status() -> None:
     assert readiness_summary(checks) == {"total": 2, "passing": 1, "failing": 1}
     assert readiness_status(checks) == "Needs attention: 1 check(s) failing"
     assert readiness_status(checks[:1]) == "Ready"
+
+
+def test_error_guidance_points_to_common_atlas_fixes() -> None:
+    auth_guidance = "\n".join(error_guidance("OpenAIAuthenticationError", "atlas"))
+    index_guidance = "\n".join(error_guidance("OperationFailure", "atlas"))
+
+    assert "doctor" in auth_guidance
+    assert "LLM_API_KEY" in auth_guidance
+    assert "indexes" in index_guidance

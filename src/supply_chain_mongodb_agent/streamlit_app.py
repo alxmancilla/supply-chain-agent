@@ -12,6 +12,7 @@ from supply_chain_mongodb_agent.local_agent import approve_local_demo, reject_lo
 from supply_chain_mongodb_agent.settings import get_settings
 from supply_chain_mongodb_agent.ui import (
     DEMO_PROMPTS,
+    error_guidance,
     format_prompt_option,
     mode_name,
     mode_summary,
@@ -136,7 +137,8 @@ def _resume_action(thread_id: str, decision: str) -> None:
 def _render_answer_panel() -> None:
     if st.session_state.last_error:
         st.error(f"Request failed: {st.session_state.last_error}")
-        st.caption("Run `uv run supply-chain-agent doctor` for safe readiness checks.")
+        for guidance in error_guidance(st.session_state.last_error, settings.demo_mode):
+            st.caption(guidance)
         return
     if not st.session_state.last_answer:
         st.info("Choose a scenario, then ask the agent to generate a recommendation.")
