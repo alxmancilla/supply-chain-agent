@@ -10,6 +10,7 @@ def test_workflow_diagram_includes_core_agent_components() -> None:
     assert "MongoDBStore" in dot
     assert "Atlas Vector Search" in dot
     assert "MongoDB Atlas" in dot
+    assert "Scoped data boundary" in dot
 
 
 def test_workflow_diagram_includes_agent_runtime_states() -> None:
@@ -18,12 +19,21 @@ def test_workflow_diagram_includes_agent_runtime_states() -> None:
     assert "Agent runtime states" in dot
     assert "Request received" in dot
     assert "Load thread state" in dot
-    assert "Retrieve operational context" in dot
-    assert "Recall scoped memory" in dot
+    assert "Gather context" in dot
+    assert "Reason with LLM" in dot
     assert "Decision point" in dot
+    assert "Read-only answer" in dot
+    assert "Draft action" in dot
     assert "Pending human approval" in dot
     assert "Approval resume" in dot
-    assert "Persist state + memory" in dot
+    assert "Persist outcome" in dot
+
+
+def test_workflow_diagram_includes_visual_legend() -> None:
+    dot = workflow_diagram_dot()
+
+    assert "Solid blue arrows" in dot
+    assert "Dashed gray arrows" in dot
 
 
 def test_workflow_diagram_only_shows_atlas_flow() -> None:
@@ -41,6 +51,7 @@ def test_workflow_notes_describe_atlas_architecture() -> None:
     assert "LangGraph" in atlas_notes
     assert "Deep Agents" in atlas_notes
     assert "state transitions" in atlas_notes
+    assert "dashed callouts" in atlas_notes
     assert "decision point" in atlas_notes
     assert "MongoDB Atlas" in atlas_notes
     assert "realm_id, agent_id, and user_id" in atlas_notes

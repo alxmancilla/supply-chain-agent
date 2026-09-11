@@ -1,64 +1,61 @@
 def workflow_diagram_dot() -> str:
     return r"""
 digraph supply_chain_agent {
-  graph [rankdir=LR, bgcolor="transparent", pad="0.3", nodesep="0.5", ranksep="0.8", compound=true];
-  node [shape=box, style="rounded,filled", color="#64748b", fillcolor="#f8fafc", fontname="Helvetica", fontsize=11];
-  edge [color="#64748b", arrowsize="0.8", fontname="Helvetica", fontsize=10];
+  graph [rankdir=LR, bgcolor="transparent", pad="0.25", nodesep="0.45", ranksep="0.8", compound=true, splines=polyline];
+  node [shape=box, style="rounded,filled", color="#94a3b8", fillcolor="#f8fafc", fontname="Helvetica", fontsize=11, margin="0.12,0.08"];
+  edge [color="#2563eb", arrowsize="0.8", fontname="Helvetica", fontsize=10, penwidth=2];
 
   subgraph cluster_states {
-    label="Agent runtime states";
-    color="#cbd5e1";
-    style="rounded";
+    label="Agent runtime states — primary path";
+    color="#bfdbfe";
+    fillcolor="#eff6ff";
+    style="rounded,filled";
 
-    request [label="1. Request received", fillcolor="#dbeafe"];
-    load [label="2. Load thread state", fillcolor="#e0e7ff"];
-    ops_state [label="3. Retrieve operational context", fillcolor="#fef3c7"];
-    knowledge_state [label="4. Retrieve knowledge", fillcolor="#ccfbf1"];
-    memory_state [label="5. Recall scoped memory", fillcolor="#ccfbf1"];
-    incidents_state [label="6. Recall prior incidents", fillcolor="#ccfbf1"];
-    reason [label="7. LLM reasoning", fillcolor="#fae8ff"];
-    decision [label="8. Decision point", shape=diamond, fillcolor="#fef9c3"];
-    pending [label="9. Pending human approval", fillcolor="#fee2e2"];
-    resume [label="10. Approval resume", fillcolor="#ffedd5"];
-    respond [label="11. Final response", fillcolor="#dbeafe"];
-    persist [label="12. Persist state + memory", fillcolor="#e0e7ff"];
+    request [label=<<B>1. Request received</B><BR/><FONT POINT-SIZE="9">User asks about a disruption</FONT>>, fillcolor="#dbeafe"];
+    load [label=<<B>2. Load thread state</B><BR/><FONT POINT-SIZE="9">Resume context from MongoDBSaver</FONT>>, fillcolor="#e0e7ff"];
+    context [label=<<B>3. Gather context</B><BR/><FONT POINT-SIZE="9">Ops data + knowledge + memory</FONT>>, fillcolor="#ccfbf1"];
+    reason [label=<<B>4. Reason with LLM</B><BR/><FONT POINT-SIZE="9">Synthesize facts and evidence</FONT>>, fillcolor="#fae8ff"];
+    decision [label=<<B>5. Decision point</B><BR/><FONT POINT-SIZE="9">Answer or propose action?</FONT>>, shape=diamond, fillcolor="#fef9c3", margin="0.18,0.08"];
+    answer [label=<<B>6A. Read-only answer</B><BR/><FONT POINT-SIZE="9">Return recommendation + citations</FONT>>, fillcolor="#dbeafe"];
+    draft [label=<<B>6B. Draft action</B><BR/><FONT POINT-SIZE="9">Create pending approval record</FONT>>, fillcolor="#fee2e2"];
+    approval [label=<<B>7. Pending human approval</B><BR/><FONT POINT-SIZE="9">LangGraph interrupt pauses thread</FONT>>, fillcolor="#fecaca"];
+    resume [label=<<B>8. Approval resume</B><BR/><FONT POINT-SIZE="9">Continue same thread after approval</FONT>>, fillcolor="#ffedd5"];
+    persist [label=<<B>9. Persist outcome</B><BR/><FONT POINT-SIZE="9">Checkpoint + memory/action history</FONT>>, fillcolor="#e0e7ff"];
   }
 
   subgraph cluster_support {
-    label="Framework + MongoDB support";
+    label="Framework + MongoDB support — how each state is powered";
     color="#cbd5e1";
-    style="rounded,dashed";
+    fillcolor="#f8fafc";
+    style="rounded,filled,dashed";
 
-    deepagents [label="Deep Agents\nplanning + tool-use loop", fillcolor="#ede9fe"];
-    langchain [label="LangChain\ntools + model interfaces", fillcolor="#ede9fe"];
-    langgraph [label="LangGraph\nstate machine + interrupts", fillcolor="#ede9fe"];
-    saver [label="MongoDBSaver\ncheckpoints", fillcolor="#dbeafe"];
-    store [label="MongoDBStore\nlong-term memory", fillcolor="#dbeafe"];
-    atlas_ops [label="MongoDB Atlas\nshipments, POs, inventory, suppliers", fillcolor="#fef3c7"];
-    vector [label="Atlas Vector Search\nautoEmbed + rerank", fillcolor="#ccfbf1"];
-    drafts [label="Action drafts\napproval records", fillcolor="#fee2e2"];
+    deepagents [label=<<B>Deep Agents</B><BR/><FONT POINT-SIZE="9">Planning + tool-use loop</FONT>>, fillcolor="#ede9fe"];
+    langchain [label=<<B>LangChain</B><BR/><FONT POINT-SIZE="9">Tools + model interfaces</FONT>>, fillcolor="#ede9fe"];
+    langgraph [label=<<B>LangGraph</B><BR/><FONT POINT-SIZE="9">State machine + interrupts</FONT>>, fillcolor="#ede9fe"];
+    mongodb [label=<<B>MongoDB Atlas</B><BR/><FONT POINT-SIZE="9">Ops data + action drafts</FONT><BR/><FONT POINT-SIZE="9">MongoDBSaver checkpoints + MongoDBStore memory</FONT>>, fillcolor="#dcfce7"];
+    vector [label=<<B>Atlas Vector Search</B><BR/><FONT POINT-SIZE="9">autoEmbed + rerank</FONT>>, fillcolor="#ccfbf1"];
+    scope [label=<<B>Scoped data boundary</B><BR/><FONT POINT-SIZE="9">realm_id + agent_id + user_id</FONT>>, fillcolor="#fef3c7"];
   }
 
-  request -> load -> ops_state -> knowledge_state -> memory_state -> incidents_state -> reason -> decision;
-  decision -> respond [label="read-only answer"];
-  decision -> pending [label="state-changing draft"];
-  pending -> resume -> respond -> persist;
+  legend [label="Solid blue arrows = agent state transitions\nDashed gray arrows = supporting framework/data services", shape=note, fillcolor="#ffffff", color="#cbd5e1", fontsize=10];
 
-  deepagents -> request [style=dashed];
-  langchain -> ops_state [style=dashed];
-  langchain -> reason [style=dashed];
-  langgraph -> load [style=dashed];
-  langgraph -> pending [style=dashed];
-  langgraph -> resume [style=dashed];
-  saver -> load [style=dashed];
-  saver -> persist [style=dashed];
-  store -> memory_state [style=dashed];
-  store -> persist [style=dashed];
-  atlas_ops -> ops_state [style=dashed];
-  vector -> knowledge_state [style=dashed];
-  vector -> memory_state [style=dashed];
-  vector -> incidents_state [style=dashed];
-  drafts -> pending [style=dashed];
+  request -> load -> context -> reason -> decision;
+  decision -> answer [label="read-only"];
+  decision -> draft [label="needs approval"];
+  draft -> approval -> resume -> persist;
+  answer -> persist;
+
+  deepagents -> request [style=dashed, color="#94a3b8", penwidth=1];
+  langchain -> context [style=dashed, color="#94a3b8", penwidth=1];
+  langchain -> reason [style=dashed, color="#94a3b8", penwidth=1];
+  langgraph -> load [style=dashed, color="#94a3b8", penwidth=1];
+  langgraph -> approval [style=dashed, color="#94a3b8", penwidth=1];
+  langgraph -> resume [style=dashed, color="#94a3b8", penwidth=1];
+  mongodb -> load [style=dashed, color="#94a3b8", penwidth=1];
+  mongodb -> context [style=dashed, color="#94a3b8", penwidth=1];
+  mongodb -> persist [style=dashed, color="#94a3b8", penwidth=1];
+  vector -> context [style=dashed, color="#94a3b8", penwidth=1];
+  scope -> context [style=dashed, color="#94a3b8", penwidth=1];
 }
 """
 
@@ -68,6 +65,7 @@ def workflow_notes() -> list[str]:
         "LangChain provides the tool/model interfaces used to connect the agent to MongoDB data and the configured LLM.",
         "LangGraph manages the runtime state transitions, MongoDB checkpoints, and human-approval interrupts/resume semantics.",
         "Deep Agents assembles the LangGraph agent loop that plans, calls tools, reasons over evidence, and produces the final answer.",
+        "The diagram emphasizes the main state path first; supporting framework and MongoDB services appear as dashed callouts.",
         "Uses MongoDB Atlas collections for operational data, memory, checkpoints, and action drafts.",
         "Retrieves knowledge, memories, and prior incidents with Atlas Vector Search auto-embedding and rerank.",
         "The state path branches at the decision point: read-only answers return immediately, while state-changing drafts pause for approval.",
