@@ -8,7 +8,7 @@ from supply_chain_mongodb_agent.agent import (
 )
 from supply_chain_mongodb_agent.db import get_client
 from supply_chain_mongodb_agent.doctor import doctor_report
-from supply_chain_mongodb_agent.local_agent import approve_local_demo
+from supply_chain_mongodb_agent.local_agent import approve_local_demo, reject_local_demo
 from supply_chain_mongodb_agent.settings import get_settings
 from supply_chain_mongodb_agent.ui import (
     DEMO_PROMPTS,
@@ -97,31 +97,34 @@ def _run_agent(question: str, thread_id: str) -> None:
                 client.close()
 
 
-def _approve_action(thread_id: str) -> None:
+def _resume_action(thread_id: str, decision: str) -> None:
+    local_result = approve_local_demo if decision == "approve" else reject_local_demo
+    decision_label = "approval" if decision == "approve" else "rejection"
     spinner = (
-        "Recording local approval..."
+        f"Recording local {decision_label}..."
         if settings.demo_mode == "local"
-        else "Resuming persisted LangGraph checkpoint..."
+        else f"Resuming persisted LangGraph checkpoint with {decision_label}..."
     )
     with st.spinner(spinner):
         client = None if settings.demo_mode == "local" else get_client(settings)
         try:
             if settings.demo_mode == "local":
-                result = approve_local_demo(thread_id)
+                result = local_result(thread_id)
             else:
                 agent = build_agent(client, settings)
                 result = agent.invoke(
-                    Command(resume={"decisions": [{"type": "approve"}]}),
+                    Command(resume={"decisions": [{"type": decision}]}),
                     config={"configurable": {"thread_id": thread_id}},
                 )
             st.session_state.last_answer = (
                 extract_latest_text(result) or format_pending_approval(result)
+                or f"{decision_label.title()} recorded for thread `{thread_id}`."
             )
             st.session_state.last_error = ""
             st.session_state.last_metadata = {
                 "mode": settings.demo_mode,
                 "thread_id": thread_id,
-                "approval": "approved",
+                "decision": decision,
             }
         except Exception as exc:  # noqa: BLE001 - UI boundary needs guided errors.
             st.session_state.last_error = exc.__class__.__name__
@@ -165,7 +168,7 @@ def _render_sidebar() -> str:
         st.caption("1. Ask a disruption question")
         st.caption("2. Inspect cited reasoning")
         st.caption("3. Trigger approval with the approval workflow prompt")
-        st.caption("4. Approve using the same thread ID")
+        st.caption("4. Approve or reject using the same thread ID")
         return thread_id
 
 
@@ -217,11 +220,13 @@ with ask_tab:
         height=140,
         help="Use the approval workflow prompt to demonstrate pause/resume.",
     )
-    ask_col, approve_col, clear_col = st.columns([0.38, 0.38, 0.24])
+    ask_col, approve_col, reject_col, clear_col = st.columns([0.34, 0.26, 0.26, 0.14])
     if ask_col.button("Ask agent", type="primary", width="stretch"):
         _run_agent(question, thread_id)
     if approve_col.button("Approve pending action", width="stretch"):
-        _approve_action(thread_id)
+        _resume_action(thread_id, "approve")
+    if reject_col.button("Reject pending action", width="stretch"):
+        _resume_action(thread_id, "reject")
     if clear_col.button("Clear", width="stretch"):
         st.session_state.last_answer = ""
         st.session_state.last_error = ""

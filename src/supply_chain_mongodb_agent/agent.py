@@ -79,7 +79,7 @@ def format_pending_approval(result: dict[str, Any]) -> str:
             ])
     if not lines:
         return ""
-    lines.append("Resume with: uv run supply-chain-agent approve --thread-id <thread>")
+    lines.append("Resume from the UI by approving or rejecting the pending action.")
     return "\n".join(lines)
 
 

@@ -13,7 +13,7 @@ from supply_chain_mongodb_agent.doctor import (
     doctor_report,
 )
 from supply_chain_mongodb_agent.llm import build_chat_model
-from supply_chain_mongodb_agent.local_agent import approve_local_demo
+from supply_chain_mongodb_agent.local_agent import approve_local_demo, reject_local_demo
 from supply_chain_mongodb_agent.settings import Settings
 
 runner = CliRunner()
@@ -54,6 +54,13 @@ def test_local_approval_resume_is_simulated() -> None:
     answer = extract_latest_text(approve_local_demo("abc"))
     assert "abc" in answer
     assert "Local demo approval" in answer
+
+
+def test_local_rejection_resume_is_simulated() -> None:
+    answer = extract_latest_text(reject_local_demo("abc"))
+    assert "abc" in answer
+    assert "Local demo rejection" in answer
+    assert "without executing" in answer
 
 
 def test_local_doctor_is_ok_without_credentials() -> None:

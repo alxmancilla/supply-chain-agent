@@ -50,6 +50,19 @@ def approve_local_demo(thread_id: str = "demo-thread") -> dict[str, Any]:
     }
 
 
+def reject_local_demo(thread_id: str = "demo-thread") -> dict[str, Any]:
+    return {
+        "messages": [{
+            "role": "assistant",
+            "content": (
+                f"🚫 Local demo rejection recorded for thread `{thread_id}`. "
+                "In Atlas mode this rejection resumes the persisted LangGraph "
+                "checkpoint without executing the drafted action."
+            ),
+        }]
+    }
+
+
 def _extract_question(payload: Any) -> str:
     if isinstance(payload, dict):
         messages = payload.get("messages", [])
