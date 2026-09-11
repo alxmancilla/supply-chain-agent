@@ -80,8 +80,8 @@ with ask_tab:
 
 with workflow_tab:
     st.subheader("Agent workflow")
-    st.graphviz_chart(workflow_diagram_dot(settings), width="stretch")
-    for note in workflow_notes(settings):
+    st.graphviz_chart(workflow_diagram_dot(), width="stretch")
+    for note in workflow_notes():
         st.markdown(f"- {note}")
 
 with readiness_tab:
