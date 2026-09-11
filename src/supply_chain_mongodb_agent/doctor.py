@@ -73,20 +73,40 @@ def _seed_data_check(db: Any, settings: Settings) -> dict[str, Any]:
 
 
 def _search_index_check(db: Any, settings: Settings) -> dict[str, Any]:
-    expected = {settings.knowledge_vector_index, settings.memory_vector_index, settings.episode_vector_index}
+    expected = {
+        settings.knowledge_vector_index: (db.knowledge_corpus, {"realm_id"}),
+        settings.memory_vector_index: (db.agent_memories, {"realm_id", "agent_id", "user_id"}),
+        settings.episode_vector_index: (db.agent_episodes, {"realm_id", "agent_id", "user_id"}),
+    }
     found: dict[str, str] = {}
-    for collection in (db.knowledge_corpus, db.agent_memories, db.agent_episodes):
+    stale: list[str] = []
+    for name, (collection, required_filters) in expected.items():
         for index in collection.list_search_indexes():
-            name = index.get("name", "")
-            if name:
-                found[name] = index.get("status") or index.get("queryable") or "exists"
-    missing = sorted(expected - set(found))
+            index_name = index.get("name", "")
+            if not index_name:
+                continue
+            found[index_name] = "QUERYABLE" if index.get("queryable") is True else index.get("status") or "exists"
+            if index_name == name:
+                filter_paths = _search_index_filter_paths(index)
+                missing_filters = sorted(required_filters - filter_paths) if filter_paths is not None else []
+                if filter_paths is not None and missing_filters:
+                    stale.append(f"{name} missing filters: {', '.join(missing_filters)}")
+    missing = sorted(set(expected) - set(found))
     if missing:
         return {"ok": False, "detail": f"missing indexes: {', '.join(missing)}; run `uv run supply-chain-agent indexes`"}
+    if stale:
+        return {"ok": False, "detail": f"stale index definitions: {'; '.join(stale)}; rerun `uv run supply-chain-agent indexes`"}
     not_ready = sorted(name for name in expected if str(found[name]).upper() not in {"READY", "QUERYABLE", "TRUE", "EXISTS"})
     if not_ready:
         return {"ok": False, "detail": f"indexes found but not ready yet: {', '.join(not_ready)}; wait and rerun doctor"}
     return {"ok": True, "detail": "Atlas Search / Vector Search indexes detected"}
+
+
+def _search_index_filter_paths(index: dict[str, Any]) -> set[str] | None:
+    definition = index.get("latestDefinition") or index.get("definition") or {}
+    if not definition:
+        return None
+    return {field.get("path", "") for field in definition.get("fields", []) if field.get("type") == "filter"}
 
 
 def _check(name: str, ok: bool, detail: str) -> dict[str, Any]:

@@ -16,9 +16,9 @@ def ensure_btree_indexes(db: Database, settings: Settings | None = None) -> list
     db.shipments.create_index([("realm_id", 1), ("shipment_id", 1)], unique=True)
     db.parts.create_index([("realm_id", 1), ("part_id", 1)], unique=True)
     db.inventory.create_index([("realm_id", 1), ("part_id", 1), ("site", 1)], unique=True)
-    db.agent_memories.create_index([("realm_id", 1), ("user_id", 1)])
-    db.agent_episodes.create_index([("realm_id", 1), ("user_id", 1), ("resolved_at", -1)])
-    db.action_drafts.create_index([("realm_id", 1), ("draft_id", 1)], unique=True)
+    db.agent_memories.create_index([("realm_id", 1), ("agent_id", 1), ("user_id", 1)])
+    db.agent_episodes.create_index([("realm_id", 1), ("agent_id", 1), ("user_id", 1), ("resolved_at", -1)])
+    db.action_drafts.create_index([("realm_id", 1), ("agent_id", 1), ("draft_id", 1)], unique=True)
     return created
 
 
@@ -35,19 +35,35 @@ def search_definition() -> dict[str, Any]:
     return {"mappings": {"dynamic": False, "fields": {"text": {"type": "string"}}}}
 
 
-def _search_index_exists(collection: Any, name: str) -> bool:
+def _search_index(collection: Any, name: str) -> dict[str, Any] | None:
     try:
-        return any(index.get("name") == name for index in collection.list_search_indexes(name))
+        return next((index for index in collection.list_search_indexes(name) if index.get("name") == name), None)
     except (OperationFailure, PyMongoError):
-        return False
+        return None
+
+
+def _filter_paths(definition: dict[str, Any]) -> set[str]:
+    return {field.get("path", "") for field in definition.get("fields", []) if field.get("type") == "filter"}
 
 
 def _ensure_search_index(collection: Any, name: str, definition: dict[str, Any], kind: str) -> str:
-    if _search_index_exists(collection, name):
+    existing = _search_index(collection, name)
+    if existing is None:
+        model = SearchIndexModel(definition=definition, name=name, type=kind)
+        collection.create_search_index(model)
+        return f"created:{collection.name}.{name}"
+
+    current_definition = existing.get("latestDefinition") or existing.get("definition") or {}
+    if kind == "vectorSearch" and not _filter_paths(definition) <= _filter_paths(current_definition):
+        collection.update_search_index(name, definition)
+        return f"updated:{collection.name}.{name}"
+    if kind == "search" and current_definition and current_definition != definition:
+        collection.update_search_index(name, definition)
+        return f"updated:{collection.name}.{name}"
+    if current_definition == {}:
+        return f"exists:{collection.name}.{name}:definition-not-inspected"
+    else:
         return f"exists:{collection.name}.{name}"
-    model = SearchIndexModel(definition=definition, name=name, type=kind)
-    collection.create_search_index(model)
-    return f"created:{collection.name}.{name}"
 
 
 def ensure_atlas_search_indexes(db: Database, settings: Settings | None = None) -> list[str]:
@@ -62,13 +78,13 @@ def ensure_atlas_search_indexes(db: Database, settings: Settings | None = None) 
         _ensure_search_index(
             db.agent_memories,
             settings.memory_vector_index,
-            autoembed_definition("content", settings.atlas_embedding_model, ("realm_id", "user_id")),
+            autoembed_definition("content", settings.atlas_embedding_model, ("realm_id", "agent_id", "user_id")),
             "vectorSearch",
         ),
         _ensure_search_index(
             db.agent_episodes,
             settings.episode_vector_index,
-            autoembed_definition("content", settings.atlas_embedding_model, ("realm_id", "user_id")),
+            autoembed_definition("content", settings.atlas_embedding_model, ("realm_id", "agent_id", "user_id")),
             "vectorSearch",
         ),
         _ensure_search_index(

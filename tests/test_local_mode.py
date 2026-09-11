@@ -118,6 +118,53 @@ def test_search_index_check_reports_indexes_not_ready() -> None:
     assert "not ready" in result["detail"]
 
 
+def test_search_index_check_accepts_queryable_building_indexes() -> None:
+    class Collection:
+        def __init__(self, name: str, filters: tuple[str, ...]) -> None:
+            self.name = name
+            self.filters = filters
+
+        def list_search_indexes(self) -> list[dict[str, object]]:
+            return [{
+                "name": self.name,
+                "status": "BUILDING",
+                "queryable": True,
+                "latestDefinition": {"fields": [{"type": "filter", "path": path} for path in self.filters]},
+            }]
+
+    class Db:
+        knowledge_corpus = Collection("knowledge_corpus_autoembed", ("realm_id",))
+        agent_memories = Collection("agent_memories_autoembed", ("realm_id", "agent_id", "user_id"))
+        agent_episodes = Collection("agent_episodes_autoembed", ("realm_id", "agent_id", "user_id"))
+
+    result = _search_index_check(Db(), Settings())
+    assert result["ok"]
+
+
+def test_search_index_check_reports_stale_filter_definitions() -> None:
+    class Collection:
+        def __init__(self, name: str, filters: tuple[str, ...]) -> None:
+            self.name = name
+            self.filters = filters
+
+        def list_search_indexes(self) -> list[dict[str, object]]:
+            return [{
+                "name": self.name,
+                "status": "READY",
+                "latestDefinition": {"fields": [{"type": "filter", "path": path} for path in self.filters]},
+            }]
+
+    class Db:
+        knowledge_corpus = Collection("knowledge_corpus_autoembed", ("realm_id",))
+        agent_memories = Collection("agent_memories_autoembed", ("realm_id", "user_id"))
+        agent_episodes = Collection("agent_episodes_autoembed", ("realm_id", "user_id"))
+
+    result = _search_index_check(Db(), Settings())
+    assert not result["ok"]
+    assert "stale index definitions" in result["detail"]
+    assert "agent_id" in result["detail"]
+
+
 def test_placeholder_llm_key_is_not_configured() -> None:
     settings = Settings(demo_mode="atlas", llm_api_key="<your-llm-api-key>", grove_api_key=None)
     assert not settings.llm_api_key_configured
