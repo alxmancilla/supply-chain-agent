@@ -53,6 +53,46 @@ def mode_summary(demo_mode: str) -> str:
     return "Connected runtime using MongoDB Atlas, LangGraph state, and an LLM."
 
 
+def hero_summary(demo_mode: str) -> str:
+    if demo_mode == "local":
+        return (
+            "A credential-free agent walkthrough using bundled sample data. "
+            "It shows the workflow before connecting to MongoDB Atlas."
+        )
+    return (
+        "A connected agent demo using MongoDB Atlas for operational data, retrieval, "
+        "memory, checkpoints, and approval-gated actions."
+    )
+
+
+def mode_metrics(demo_mode: str) -> tuple[tuple[str, str], ...]:
+    if demo_mode == "local":
+        return (
+            ("Data", "Bundled samples"),
+            ("Retrieval", "Deterministic lookup"),
+            ("State", "Simulated thread"),
+            ("Approval", "Simulated resume"),
+        )
+    return (
+        ("Data", "MongoDB Atlas"),
+        ("Retrieval", "Atlas Vector Search"),
+        ("State", "MongoDBSaver"),
+        ("Memory", "MongoDBStore"),
+    )
+
+
+def workflow_intro(demo_mode: str) -> str:
+    if demo_mode == "local":
+        return (
+            "Local mode simulates this same decision flow with bundled data. "
+            "Atlas mode runs it with MongoDB-backed state, memory, retrieval, and checkpoints."
+        )
+    return (
+        "This shows the connected Atlas runtime: MongoDB-backed state, memory, "
+        "retrieval, checkpoints, and approval records."
+    )
+
+
 def readiness_summary(checks: list[dict[str, Any]]) -> dict[str, int]:
     total = len(checks)
     passing = sum(1 for check in checks if check.get("ok"))

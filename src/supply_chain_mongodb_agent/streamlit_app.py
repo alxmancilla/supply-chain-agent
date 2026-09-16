@@ -14,10 +14,13 @@ from supply_chain_mongodb_agent.ui import (
     DEMO_PROMPTS,
     error_guidance,
     format_prompt_option,
+    hero_summary,
+    mode_metrics,
     mode_name,
     mode_summary,
     readiness_status,
     readiness_summary,
+    workflow_intro,
 )
 from supply_chain_mongodb_agent.workflow import workflow_diagram_dot, workflow_notes
 
@@ -186,10 +189,7 @@ st.markdown(
       <span class="pill">Atlas-ready</span>
       <span class="pill">Human-in-the-loop</span>
       <h1>🚚 Supply Chain Resolution Agent</h1>
-      <p class="muted">
-        A stateful agent demo for disruption analysis, evidence retrieval,
-        memory recall, and approval-gated actions on MongoDB Atlas.
-      </p>
+      <p class="muted">{hero_summary(settings.demo_mode)}</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -197,10 +197,8 @@ st.markdown(
 
 st.write("")
 metric_cols = st.columns(4)
-metric_cols[0].metric("Operational data", "Shipments + inventory")
-metric_cols[1].metric("Knowledge", "Vector Search")
-metric_cols[2].metric("State", "LangGraph")
-metric_cols[3].metric("Memory", "MongoDBStore")
+for column, (label, value) in zip(metric_cols, mode_metrics(settings.demo_mode), strict=True):
+    column.metric(label, value)
 
 ask_tab, workflow_tab, readiness_tab = st.tabs([
     "💬 Ask Agent",
@@ -239,6 +237,7 @@ with ask_tab:
 
 with workflow_tab:
     st.subheader("How the agent works")
+    st.info(workflow_intro(settings.demo_mode))
     st.caption(
         "The main path is shown first; framework and MongoDB services appear as "
         "supporting callouts so the workflow is easier to follow."

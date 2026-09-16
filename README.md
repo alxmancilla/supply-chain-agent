@@ -16,6 +16,31 @@ The project has two modes:
   Search automated embeddings, native `$rerank`, MongoDB-backed LangGraph state,
   MongoDB-backed long-term memory, and a configurable OpenAI-compatible LLM.
 
+## New to agents, MongoDB, or LangChain?
+
+Think of this demo as a workflow that lets an AI assistant solve a supply-chain
+disruption with guardrails:
+
+- An **agent** is an LLM-driven workflow that can decide when to call tools,
+  inspect evidence, and produce a recommendation.
+- A **tool** is a safe function the agent can call, such as reading shipment
+  status or drafting an approval request.
+- **Retrieval** means finding the most relevant policies, playbooks, memories,
+  or prior incidents before the agent answers.
+- **Memory** means the agent can use prior planner preferences and resolved
+  incidents instead of treating every question as brand new.
+- **State** means the agent can pause and resume the same thread, which is what
+  makes human approval possible.
+
+The frameworks and database pieces have specific jobs:
+
+- **MongoDB Atlas** stores operational data, knowledge, memories, checkpoints,
+  and pending approval drafts in the connected demo.
+- **Atlas Vector Search** helps retrieve relevant knowledge and prior incidents.
+- **LangChain** provides the LLM and tool interfaces.
+- **LangGraph** manages state, checkpoints, interrupts, and resume behavior.
+- **Deep Agents** provides the planning and tool-use loop used by the agent.
+
 ## What it demonstrates
 
 - Operational supply-chain data: suppliers, parts, inventory, shipments, POs.
@@ -68,11 +93,15 @@ predictable so the repository is safe to share and easy to test.
 
 If you are new to agentic development, start with these files:
 
-- `src/supply_chain_mongodb_agent/local_agent.py`: the credential-free agent path.
-- `src/supply_chain_mongodb_agent/tools.py`: the tools the connected agent can call.
-- `src/supply_chain_mongodb_agent/agent.py`: where local mode and Atlas mode are wired.
-- `src/supply_chain_mongodb_agent/seed.py`: the demo operational data, knowledge, memories, and prior incidents.
-- `src/supply_chain_mongodb_agent/streamlit_app.py`: the small UI wrapper.
+1. `src/supply_chain_mongodb_agent/local_agent.py`: understand the workflow
+   without infrastructure.
+2. `src/supply_chain_mongodb_agent/seed.py`: inspect the sample business data,
+   knowledge, memories, and prior incidents.
+3. `src/supply_chain_mongodb_agent/tools.py`: see what the connected agent can
+   read or draft.
+4. `src/supply_chain_mongodb_agent/agent.py`: see how local mode and Atlas mode
+   are wired.
+5. `src/supply_chain_mongodb_agent/streamlit_app.py`: inspect the small UI wrapper.
 
 The local path is deliberately plain Python so the behavior is easy to follow
 before adding LangGraph state, Atlas Vector Search, and an LLM.
@@ -123,6 +152,10 @@ uv run supply-chain-agent indexes
 
 `indexes` creates Atlas Search / Vector Search definitions for `autoEmbed`.
 Native `$rerank` must also be enabled in Atlas Project Settings on MongoDB 8.3+.
+
+For the full Atlas showcase, use **M10 or higher**. M0 / Free clusters are useful
+for basic testing, but this demo creates four Search / Vector Search indexes,
+while Free clusters support only three.
 
 Run the same guided walkthrough against Atlas and your configured LLM:
 

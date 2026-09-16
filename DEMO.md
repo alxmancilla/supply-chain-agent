@@ -5,6 +5,30 @@ This project has two good demo paths:
 - A **local beginner path** that needs no credentials and is safe for anyone to run.
 - An **Atlas showcase path** that uses MongoDB Atlas, Atlas Vector Search, rerank, LangGraph state, memory, and a configured LLM.
 
+## What You Are About to Show
+
+In plain English, this demo shows an AI agent solving a supply-chain disruption:
+
+1. A user asks about a late shipment, shortage, or quality hold.
+2. The agent checks operational facts such as shipments, inventory, suppliers, and POs.
+3. It retrieves relevant policies, playbooks, memories, and prior incidents.
+4. It recommends a next step with supporting evidence.
+5. If the next step changes business state, it drafts the action and pauses for human approval.
+
+MongoDB matters because the connected demo uses it for live-style business data,
+retrieval, long-term memory, LangGraph checkpoints, and pending approval records.
+LangChain connects the agent to tools and the LLM. LangGraph keeps the workflow
+stateful and resumable.
+
+## 5-Minute Presenter Flow
+
+1. Start in local mode to prove the demo works without credentials.
+2. Ask the `SH-1043` disruption question in Streamlit.
+3. Trigger the approval workflow prompt.
+4. Approve or reject the pending action using the same Thread ID.
+5. Open **Workflow** to explain MongoDB Atlas, LangChain, LangGraph, and Deep Agents.
+6. Open **Readiness** to show safe configuration checks.
+
 ## 1. Local Beginner Path
 
 Use this path when someone is new to agentic development or just wants to see the workflow immediately.
@@ -38,6 +62,10 @@ uv run supply-chain-agent ask "Shipment SH-3110 is delayed. Do we need premium f
 ## 2. Atlas Showcase Path
 
 Use this path when you want to show the real MongoDB value: operational data, state, memory, vector retrieval, and rerank.
+
+Use **M10 or higher** for the full Atlas showcase. M0 / Free clusters are useful
+for basic testing, but this demo creates four Search / Vector Search indexes,
+while Free clusters support only three.
 
 Create your environment file:
 
@@ -80,7 +108,8 @@ Run the guided Atlas walkthrough:
 uv run supply-chain-agent demo --thread-id atlas-demo-001
 ```
 
-Approve the pending action from the CLI walkthrough:
+Approve the pending action from the CLI walkthrough. Streamlit demonstrates both
+approval and rejection; the CLI walkthrough demonstrates approval resume.
 
 ```bash
 uv run supply-chain-agent approve --thread-id atlas-demo-001

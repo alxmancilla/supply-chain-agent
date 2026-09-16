@@ -2,10 +2,13 @@ from supply_chain_mongodb_agent.ui import (
     DEMO_PROMPTS,
     error_guidance,
     format_prompt_option,
+    hero_summary,
+    mode_metrics,
     mode_name,
     mode_summary,
     readiness_status,
     readiness_summary,
+    workflow_intro,
 )
 
 
@@ -28,6 +31,20 @@ def test_mode_copy_is_demo_friendly() -> None:
     assert mode_name("atlas") == "Atlas connected"
     assert "Credential-free" in mode_summary("local")
     assert "MongoDB Atlas" in mode_summary("atlas")
+    assert "credential-free" in hero_summary("local").lower()
+    assert "MongoDB Atlas" in hero_summary("atlas")
+    assert "simulates" in workflow_intro("local")
+    assert "connected Atlas runtime" in workflow_intro("atlas")
+
+
+def test_mode_metrics_distinguish_local_and_atlas_runtime() -> None:
+    local_metrics = dict(mode_metrics("local"))
+    atlas_metrics = dict(mode_metrics("atlas"))
+
+    assert local_metrics["Data"] == "Bundled samples"
+    assert local_metrics["Retrieval"] == "Deterministic lookup"
+    assert atlas_metrics["Data"] == "MongoDB Atlas"
+    assert atlas_metrics["Retrieval"] == "Atlas Vector Search"
 
 
 def test_readiness_summary_and_status() -> None:
