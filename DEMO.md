@@ -62,13 +62,13 @@ LLM_USE_RESPONSES_API=true
 Prepare Atlas:
 
 ```bash
-uv run supply-chain-agent doctor
-uv run supply-chain-agent seed
-uv run supply-chain-agent indexes
-uv run supply-chain-agent doctor
+uv run supply-chain-agent validate
 ```
 
-If `doctor` says indexes are not ready yet, wait a minute and rerun it. Atlas Search indexes can exist before they are queryable.
+`validate` seeds the scoped demo data, ensures the three M0-compatible Vector
+Search indexes, and reruns readiness checks without printing secrets. If indexes
+are not ready yet, wait a minute and rerun it. Atlas Search indexes can exist
+before they are queryable.
 
 Run the guided Atlas walkthrough:
 
@@ -88,8 +88,11 @@ uv run supply-chain-agent approve --thread-id atlas-demo-001
 Start the UI:
 
 ```bash
-uv run python -m streamlit run src/supply_chain_mongodb_agent/streamlit_app.py
+uv run supply-chain-agent serve
 ```
+
+Use `serve` for every backend restart. It runs the Atlas validation task before
+Streamlit starts, so the demo verifies data and indexes each time.
 
 Demo flow:
 
@@ -119,14 +122,14 @@ In Atlas mode, the agent uses these pieces:
 Run this first:
 
 ```bash
-uv run supply-chain-agent doctor
+uv run supply-chain-agent validate
 ```
 
 Common fixes:
 
 - Missing LLM key: set `LLM_API_KEY` in `.env`.
 - MongoDB connection fails: check `MONGODB_URI`, network access, and Atlas IP access list.
-- No seed data: run `uv run supply-chain-agent seed`.
-- Missing indexes: run `uv run supply-chain-agent indexes`.
-- Indexes not ready: wait and rerun `uv run supply-chain-agent doctor`.
+- No seed data: run `uv run supply-chain-agent validate`.
+- Missing indexes: run `uv run supply-chain-agent validate`.
+- Indexes not ready: wait and rerun `uv run supply-chain-agent validate`.
 - Approval/rejection does not resume: use the same thread ID that created the pending approval.

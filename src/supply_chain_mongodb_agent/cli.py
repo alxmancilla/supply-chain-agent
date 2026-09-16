@@ -1,3 +1,8 @@
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
 import typer
 from langgraph.types import Command
 from rich.console import Console
@@ -15,9 +20,22 @@ from supply_chain_mongodb_agent.indexes import (
 )
 from supply_chain_mongodb_agent.seed import seed_demo_data
 from supply_chain_mongodb_agent.settings import get_settings
+from supply_chain_mongodb_agent.validation import validate_atlas_setup
 
 app = typer.Typer(help="Supply-chain MongoDB + LangChain agent demo")
 console = Console()
+
+
+def _print_validation_report(report: dict[str, Any]) -> None:
+    console.print("[bold]Atlas restart validation[/bold]")
+    console.print({
+        "btree_indexes_checked": len(report["btree_indexes"]),
+        "seeded": report["seeded"],
+        "vector_indexes": report["search_indexes"],
+    })
+    for check in report["checks"]:
+        icon = "✅" if check["ok"] else "❌"
+        console.print(f"{icon} {check['name']}: {check['detail']}")
 
 
 @app.command()
@@ -51,6 +69,58 @@ def demo(
     finally:
         if client is not None:
             client.close()
+
+
+@app.command()
+def validate(
+    wait_indexes_seconds: int = typer.Option(
+        180,
+        "--wait-indexes-seconds",
+        help="Seconds to wait for Atlas Vector Search indexes to become queryable.",
+    ),
+    poll_seconds: int = typer.Option(10, "--poll-seconds", help="Seconds between readiness checks."),
+) -> None:
+    """Prepare Atlas data/indexes and verify readiness without printing secrets."""
+    report = validate_atlas_setup(
+        get_settings(),
+        wait_indexes_seconds=wait_indexes_seconds,
+        poll_seconds=poll_seconds,
+    )
+    _print_validation_report(report)
+    if not report["ok"]:
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def serve(
+    port: int = typer.Option(8501, "--port", help="Streamlit server port."),
+    address: str = typer.Option("localhost", "--address", help="Streamlit server address."),
+    wait_indexes_seconds: int = typer.Option(
+        180,
+        "--wait-indexes-seconds",
+        help="Seconds to wait for Atlas Vector Search indexes before starting Streamlit.",
+    ),
+) -> None:
+    """Validate Atlas data/indexes, then start the Streamlit demo backend."""
+    settings = get_settings()
+    report = validate_atlas_setup(settings, wait_indexes_seconds=wait_indexes_seconds)
+    _print_validation_report(report)
+    if not report["ok"]:
+        raise typer.Exit(code=1)
+
+    app_path = Path(__file__).with_name("streamlit_app.py")
+    command = [
+        sys.executable,
+        "-m",
+        "streamlit",
+        "run",
+        str(app_path),
+        "--server.port",
+        str(port),
+        "--server.address",
+        address,
+    ]
+    raise typer.Exit(code=subprocess.run(command, check=False).returncode)
 
 
 @app.command()
@@ -131,7 +201,7 @@ def smoke() -> None:
 
 @app.command()
 def doctor() -> None:
-    """Run non-sensitive readiness checks for the selected demo mode."""
+    """Run non-sensitive Atlas readiness checks."""
     checks = doctor_report(get_settings())
     for check in checks:
         icon = "✅" if check["ok"] else "❌"

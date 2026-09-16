@@ -65,13 +65,12 @@ Fill in the required Atlas and LLM values in `.env`. Keep real secrets in
 Then bootstrap data and indexes:
 
 ```bash
-uv run supply-chain-agent doctor
-uv run supply-chain-agent seed
-uv run supply-chain-agent indexes
-uv run supply-chain-agent doctor
+uv run supply-chain-agent validate
 ```
 
-`indexes` creates three Atlas Vector Search definitions for `autoEmbed`.
+`validate` pings Atlas, creates B-tree indexes, upserts the scoped seed data,
+ensures the three Atlas Vector Search definitions for `autoEmbed`, and runs
+non-sensitive readiness checks.
 Native `$rerank` must also be enabled in Atlas Project Settings on MongoDB 8.3+.
 
 The Atlas demo is **M0-compatible by default** because it creates three Vector
@@ -94,8 +93,12 @@ uv run supply-chain-agent ask "Shipment SH-1043 for BRK-22 is 6 days late. What 
 Run the Streamlit UI:
 
 ```bash
-uv run python -m streamlit run src/supply_chain_mongodb_agent/streamlit_app.py
+uv run supply-chain-agent serve
 ```
+
+Use `serve` for every backend restart. It reruns the Atlas validation task before
+starting Streamlit, which is especially useful on M0 where indexes may need time
+to become queryable.
 
 Open the URL printed by Streamlit, usually `http://localhost:8501`.
 
@@ -189,13 +192,14 @@ thread.
   scope to model actor-aware isolation.
 - The approval tool drafts actions instead of pretending to execute them.
 - `doctor` reports non-sensitive readiness and never prints secrets.
+- `serve` runs restart validation before every Streamlit backend launch.
 
 ## Troubleshooting quick guide
 
 Start with:
 
 ```bash
-uv run supply-chain-agent doctor
+uv run supply-chain-agent validate
 ```
 
 Common fixes:
@@ -203,8 +207,8 @@ Common fixes:
 - Missing LLM key: set `LLM_API_KEY` in `.env`.
 - LLM gateway auth fails: check `LLM_BASE_URL`, `LLM_API_KEY_HEADER`, and `LLM_USE_RESPONSES_API`.
 - MongoDB connection fails: check `MONGODB_URI`, Atlas network access, and the IP access list.
-- No scoped demo data: run `uv run supply-chain-agent seed`.
-- Missing or stale indexes: run `uv run supply-chain-agent indexes`, wait, then rerun `doctor`.
+- No scoped demo data: run `uv run supply-chain-agent validate`.
+- Missing or stale indexes: run `uv run supply-chain-agent validate`, wait, then rerun it.
 - Approval or rejection does not resume: use the same Thread ID that created the pending request.
 
 ## Tests
