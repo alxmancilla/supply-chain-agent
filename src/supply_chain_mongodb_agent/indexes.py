@@ -31,10 +31,6 @@ def autoembed_definition(path: str, model: str, filter_paths: tuple[str, ...]) -
     }
 
 
-def search_definition() -> dict[str, Any]:
-    return {"mappings": {"dynamic": False, "fields": {"text": {"type": "string"}}}}
-
-
 def _search_index(collection: Any, name: str) -> dict[str, Any] | None:
     try:
         return next((index for index in collection.list_search_indexes(name) if index.get("name") == name), None)
@@ -86,11 +82,5 @@ def ensure_atlas_search_indexes(db: Database, settings: Settings | None = None) 
             settings.episode_vector_index,
             autoembed_definition("content", settings.atlas_embedding_model, ("realm_id", "agent_id", "user_id")),
             "vectorSearch",
-        ),
-        _ensure_search_index(
-            db.knowledge_corpus,
-            settings.knowledge_search_index,
-            search_definition(),
-            "search",
         ),
     ]

@@ -79,7 +79,7 @@ def seed() -> None:
 
 @app.command()
 def indexes() -> None:
-    """Create Atlas Search/Vector Search auto-embedding indexes."""
+    """Create Atlas Vector Search auto-embedding indexes."""
     settings = get_settings()
     if settings.demo_mode == "local":
         console.print({"mode": "local", "indexes": "not required", "note": "Set DEMO_MODE=atlas to create Atlas indexes."})

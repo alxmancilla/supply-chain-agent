@@ -40,7 +40,6 @@ class Settings(BaseSettings):
     knowledge_vector_index: str = "knowledge_corpus_autoembed"
     memory_vector_index: str = "agent_memories_autoembed"
     episode_vector_index: str = "agent_episodes_autoembed"
-    knowledge_search_index: str = "knowledge_corpus_search"
 
     @property
     def llm_api_key_configured(self) -> bool:

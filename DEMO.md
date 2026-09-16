@@ -63,9 +63,10 @@ uv run supply-chain-agent ask "Shipment SH-3110 is delayed. Do we need premium f
 
 Use this path when you want to show the real MongoDB value: operational data, state, memory, vector retrieval, and rerank.
 
-Use **M10 or higher** for the full Atlas showcase. M0 / Free clusters are useful
-for basic testing, but this demo creates four Search / Vector Search indexes,
-while Free clusters support only three.
+Atlas mode is **M0-compatible by default** because it creates three Vector
+Search indexes, which fits the Free cluster's three Search / Vector Search index
+limit. For smoother live demos, higher limits, and less resource contention,
+**M10+ is still recommended**.
 
 Create your environment file:
 

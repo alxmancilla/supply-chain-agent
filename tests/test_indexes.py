@@ -3,7 +3,6 @@ from typing import Any
 from supply_chain_mongodb_agent.indexes import (
     autoembed_definition,
     ensure_atlas_search_indexes,
-    search_definition,
 )
 from supply_chain_mongodb_agent.settings import Settings
 
@@ -51,9 +50,26 @@ def test_ensure_atlas_search_indexes_updates_stale_agent_scoped_indexes() -> Non
         agent_episodes = FakeCollection("agent_episodes", {"name": settings.episode_vector_index, "latestDefinition": stale})
 
     db = Db()
-    db.knowledge_corpus.existing = {"name": settings.knowledge_search_index, "latestDefinition": search_definition()}
     results = ensure_atlas_search_indexes(db, settings)
 
     assert f"updated:agent_memories.{settings.memory_vector_index}" in results
     assert f"updated:agent_episodes.{settings.episode_vector_index}" in results
     assert filter_paths(db.agent_memories.updated[0][1]) == {"realm_id", "agent_id", "user_id"}
+
+
+def test_ensure_atlas_search_indexes_creates_only_m0_compatible_indexes() -> None:
+    settings = Settings()
+
+    class Db:
+        knowledge_corpus = FakeCollection("knowledge_corpus")
+        agent_memories = FakeCollection("agent_memories")
+        agent_episodes = FakeCollection("agent_episodes")
+
+    db = Db()
+    results = ensure_atlas_search_indexes(db, settings)
+
+    assert len(results) == 3
+    assert all("knowledge_corpus_search" not in result for result in results)
+    assert len(db.knowledge_corpus.created) == 1
+    assert len(db.agent_memories.created) == 1
+    assert len(db.agent_episodes.created) == 1
