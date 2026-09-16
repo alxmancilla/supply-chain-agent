@@ -13,8 +13,7 @@ from supply_chain_mongodb_agent.indexes import (
     ensure_atlas_search_indexes,
     ensure_btree_indexes,
 )
-from supply_chain_mongodb_agent.local_agent import approve_local_demo
-from supply_chain_mongodb_agent.seed import demo_documents, seed_demo_data
+from supply_chain_mongodb_agent.seed import seed_demo_data
 from supply_chain_mongodb_agent.settings import get_settings
 
 app = typer.Typer(help="Supply-chain MongoDB + LangChain agent demo")
@@ -23,27 +22,20 @@ console = Console()
 
 @app.command()
 def demo(
-    local: bool = typer.Option(False, "--local", help="Force the credential-free local walkthrough."),
     thread_id: str = typer.Option("demo-thread", "--thread-id", help="Thread ID used for state and approval resume."),
 ) -> None:
     """Run a guided demo walkthrough."""
     settings = get_settings()
-    if local:
-        settings = settings.model_copy(update={"demo_mode": "local"})
-
-    client = None if settings.demo_mode == "local" else get_client(settings)
+    client = get_client(settings)
     agent = build_agent(client, settings)
     questions = [
         "Shipment SH-1043 for BRK-22 is 6 days late. What are my options?",
         "Have we handled a BRK-22 port delay before? What worked last time?",
         "Draft an approval request to expedite SH-1043 with premium freight because BRK-22 has under 3 days of cover.",
     ]
-    console.print(f"[bold]Supply Chain Agent {settings.demo_mode} demo[/bold]")
+    console.print("[bold]Supply Chain Agent Atlas demo[/bold]")
     console.print(f"Thread: {thread_id}")
-    if settings.demo_mode == "local":
-        console.print("No credentials, database, or LLM are required.\n")
-    else:
-        console.print("Using MongoDB Atlas, Atlas retrieval, LangGraph state, memory, and your configured LLM.\n")
+    console.print("Using MongoDB Atlas, Atlas retrieval, LangGraph state, memory, and your configured LLM.\n")
     try:
         for question in questions:
             console.print(f"[bold cyan]You:[/bold cyan] {question}")
@@ -65,10 +57,6 @@ def demo(
 def seed() -> None:
     """Seed demo operational, corpus, and memory documents."""
     settings = get_settings()
-    if settings.demo_mode == "local":
-        counts = {name: len(docs) for name, docs in demo_documents(settings).items()}
-        console.print({"mode": "local", "seeded": counts, "note": "Local mode uses in-process sample data; no database writes."})
-        return
     client = get_client(settings)
     db = get_database(client, settings)
     ensure_btree_indexes(db, settings)
@@ -81,9 +69,6 @@ def seed() -> None:
 def indexes() -> None:
     """Create Atlas Vector Search auto-embedding indexes."""
     settings = get_settings()
-    if settings.demo_mode == "local":
-        console.print({"mode": "local", "indexes": "not required", "note": "Set DEMO_MODE=atlas to create Atlas indexes."})
-        return
     client = get_client(settings)
     db = get_database(client, settings)
     ensure_btree_indexes(db, settings)
@@ -96,7 +81,7 @@ def indexes() -> None:
 def ask(question: str, thread_id: str = "demo-thread") -> None:
     """Ask the agent a supply-chain question."""
     settings = get_settings()
-    client = None if settings.demo_mode == "local" else get_client(settings)
+    client = get_client(settings)
     agent = build_agent(client, settings)
     result = agent.invoke(
         {"messages": [{"role": "user", "content": question}]},
@@ -111,10 +96,6 @@ def ask(question: str, thread_id: str = "demo-thread") -> None:
 def approve(thread_id: str = "demo-thread") -> None:
     """Approve pending human-in-the-loop tool calls for a thread."""
     settings = get_settings()
-    if settings.demo_mode == "local":
-        result = approve_local_demo(thread_id)
-        console.print(extract_latest_text(result))
-        return
     client = get_client(settings)
     agent = build_agent(client, settings)
     result = agent.invoke(
@@ -129,18 +110,14 @@ def approve(thread_id: str = "demo-thread") -> None:
 def smoke() -> None:
     """Show non-sensitive effective configuration."""
     settings = get_settings()
-    llm_status = (
-        {"provider": "not used in local mode", "model": "not used in local mode", "api_key_configured": "not required"}
-        if settings.demo_mode == "local"
-        else {
-            "provider": settings.effective_llm_provider,
-            "model": settings.effective_llm_model,
-            "base_url_configured": settings.effective_llm_base_url_configured,
-            "custom_api_key_header": bool(settings.effective_llm_api_key_header),
-            "responses_api": settings.effective_llm_use_responses_api,
-            "api_key_configured": settings.llm_api_key_configured,
-        }
-    )
+    llm_status = {
+        "provider": settings.effective_llm_provider,
+        "model": settings.effective_llm_model,
+        "base_url_configured": settings.effective_llm_base_url_configured,
+        "custom_api_key_header": bool(settings.effective_llm_api_key_header),
+        "responses_api": settings.effective_llm_use_responses_api,
+        "api_key_configured": settings.llm_api_key_configured,
+    }
     console.print({
         "demo_mode": settings.demo_mode,
         "db": settings.mongodb_db,

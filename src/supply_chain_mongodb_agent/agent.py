@@ -8,7 +8,6 @@ from pymongo import MongoClient
 
 from supply_chain_mongodb_agent.db import get_database
 from supply_chain_mongodb_agent.llm import build_chat_model
-from supply_chain_mongodb_agent.local_agent import build_local_demo_agent
 from supply_chain_mongodb_agent.prompts import SYSTEM_PROMPT
 from supply_chain_mongodb_agent.settings import Settings, get_settings
 from supply_chain_mongodb_agent.tools import build_tools
@@ -16,10 +15,8 @@ from supply_chain_mongodb_agent.tools import build_tools
 
 def build_agent(client: MongoClient | None, settings: Settings | None = None) -> Any:
     settings = settings or get_settings()
-    if settings.demo_mode == "local":
-        return build_local_demo_agent(settings)
     if client is None:
-        raise ValueError("A MongoDB client is required when DEMO_MODE=atlas")
+        raise ValueError("A MongoDB client is required for the Atlas demo")
     db = get_database(client, settings)
     store = MongoDBStore(db.deep_agent_store)
     backend = CompositeBackend(

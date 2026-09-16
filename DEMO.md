@@ -1,9 +1,7 @@
 # Demo Script
 
-This project has two good demo paths:
-
-- A **local beginner path** that needs no credentials and is safe for anyone to run.
-- An **Atlas showcase path** that uses MongoDB Atlas, Atlas Vector Search, rerank, LangGraph state, memory, and a configured LLM.
+This is an **Atlas-only** demo path that uses MongoDB Atlas, Atlas Vector Search,
+rerank, LangGraph state, memory, and a configured LLM.
 
 ## What You Are About to Show
 
@@ -22,44 +20,14 @@ stateful and resumable.
 
 ## 5-Minute Presenter Flow
 
-1. Start in local mode to prove the demo works without credentials.
+1. Run **Readiness** or `doctor` to show safe setup checks.
 2. Ask the `SH-1043` disruption question in Streamlit.
 3. Trigger the approval workflow prompt.
 4. Approve or reject the pending action using the same Thread ID.
 5. Open **Workflow** to explain MongoDB Atlas, LangChain, LangGraph, and Deep Agents.
-6. Open **Readiness** to show safe configuration checks.
+6. Close with how MongoDB stores data, memory, checkpoints, and approval records.
 
-## 1. Local Beginner Path
-
-Use this path when someone is new to agentic development or just wants to see the workflow immediately.
-
-```bash
-uv sync
-uv run supply-chain-agent doctor
-uv run supply-chain-agent demo --local
-```
-
-What this shows:
-
-- The agent reads operational supply-chain facts.
-- It combines live-style data with policy/playbook context.
-- It recalls a prior incident.
-- It pauses before a state-changing action.
-- It can resume a simulated approval or rejection in the Streamlit UI.
-
-Try the approval resume:
-
-```bash
-uv run supply-chain-agent approve --thread-id demo-thread
-```
-
-Ask a single question:
-
-```bash
-uv run supply-chain-agent ask "Shipment SH-3110 is delayed. Do we need premium freight?"
-```
-
-## 2. Atlas Showcase Path
+## 1. Atlas Showcase Path
 
 Use this path when you want to show the real MongoDB value: operational data, state, memory, vector retrieval, and rerank.
 
@@ -77,7 +45,6 @@ cp .env.example .env
 Set these values in `.env`:
 
 ```bash
-DEMO_MODE=atlas
 MONGODB_URI=<your-atlas-connection-string>
 MONGODB_DB=supply_chain_agent
 LLM_API_KEY=<your-llm-api-key>
@@ -116,7 +83,7 @@ approval and rejection; the CLI walkthrough demonstrates approval resume.
 uv run supply-chain-agent approve --thread-id atlas-demo-001
 ```
 
-## 3. Streamlit Demo
+## 2. Streamlit Demo
 
 Start the UI:
 
@@ -132,9 +99,9 @@ Demo flow:
 4. Ask the agent again.
 5. Click **Approve pending action** or **Reject pending action** using the same thread ID.
 6. Open **Workflow** to explain LangChain, LangGraph, Deep Agents, and MongoDB Atlas.
-7. Open **Readiness** to show local or Atlas configuration status.
+7. Open **Readiness** to show Atlas configuration status.
 
-## 4. What Just Happened
+## 3. What Just Happened
 
 In Atlas mode, the agent uses these pieces:
 

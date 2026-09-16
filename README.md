@@ -3,18 +3,11 @@
 Customer-shareable demo showing best practices for a stateful supply-chain agent
 with MongoDB operational data, agent memory, retrieval, and human approval.
 
-This repo is intentionally demo-first. A beginner should be able to clone it,
-run one command, see useful agent behavior, and then inspect the code to learn
-how the pieces fit together. If you are presenting the project, start with
-`DEMO.md`.
-
-The project has two modes:
-
-- **Local mode**: default, deterministic, and credential-free. This is the path
-  to use with prospects and customers who want to clone and run immediately.
-- **Atlas mode**: connected showcase mode using MongoDB Atlas, Atlas Vector
-  Search automated embeddings, native `$rerank`, MongoDB-backed LangGraph state,
-  MongoDB-backed long-term memory, and a configurable OpenAI-compatible LLM.
+This repo is intentionally demo-first. It is an **Atlas-only** showcase using
+MongoDB Atlas, Atlas Vector Search automated embeddings, native `$rerank`,
+MongoDB-backed LangGraph state, MongoDB-backed long-term memory, and a
+configurable OpenAI-compatible LLM. If you are presenting the project, start
+with `DEMO.md`.
 
 ## New to agents, MongoDB, or LangChain?
 
@@ -47,23 +40,50 @@ The frameworks and database pieces have specific jobs:
 - Agent tools that separate reads from state-changing actions.
 - Tenant and actor scoping with `realm_id`, `agent_id`, and `user_id`.
 - Human-in-the-loop approval for business-state changes.
-- Local deterministic fallback so the demo works without credentials.
-- Optional MongoDBSaver checkpoints for stateful LangGraph execution.
-- Optional MongoDBStore memory for long-term agent memory.
-- Optional Atlas Vector Search `autoEmbed` and native `$rerank`.
+- MongoDBSaver checkpoints for stateful LangGraph execution.
+- MongoDBStore memory for long-term agent memory.
+- Atlas Vector Search `autoEmbed` and native `$rerank`.
 
-## Quickstart: no credentials required
+## Quickstart
+
+Copy the example environment file:
 
 ```bash
 uv sync
-uv run supply-chain-agent doctor
-uv run supply-chain-agent demo --local
+cp .env.example .env
 ```
 
-The guided demo asks representative questions, shows a deterministic
-answer, and demonstrates a simulated human approval pause. It does not need
-MongoDB, Atlas, an LLM API key, or network access after dependencies are
-installed.
+Fill in the required Atlas and LLM values in `.env`. Keep real secrets in
+`.env` only; `.env` should remain untracked.
+
+- `MONGODB_URI`
+- `MONGODB_DB`
+- `LLM_API_KEY`
+- `LLM_MODEL`
+- `LLM_BASE_URL`, optional for providers that do not use the default OpenAI API
+
+Then bootstrap data and indexes:
+
+```bash
+uv run supply-chain-agent doctor
+uv run supply-chain-agent seed
+uv run supply-chain-agent indexes
+uv run supply-chain-agent doctor
+```
+
+`indexes` creates three Atlas Vector Search definitions for `autoEmbed`.
+Native `$rerank` must also be enabled in Atlas Project Settings on MongoDB 8.3+.
+
+The Atlas demo is **M0-compatible by default** because it creates three Vector
+Search indexes, which fits the Free cluster's three Search / Vector Search index
+limit. For smoother live demos, higher limits, and less resource contention,
+**M10+ is still recommended**.
+
+Run the guided walkthrough:
+
+```bash
+uv run supply-chain-agent demo
+```
 
 Ask your own question:
 
@@ -83,46 +103,21 @@ The UI has three tabs:
 
 - **Ask Agent**: run guided disruption scenarios and approve or reject pending actions.
 - **Workflow**: explain the Atlas-connected agent lifecycle and supporting frameworks.
-- **Readiness**: show non-sensitive local/Atlas setup checks.
-
-Local mode uses deterministic seeded sample documents in process. It does not
-write to a database and does not call an LLM provider. Responses are intentionally
-predictable so the repository is safe to share and easy to test.
+- **Readiness**: show non-sensitive Atlas setup checks.
 
 ## What to look at first
 
 If you are new to agentic development, start with these files:
 
-1. `src/supply_chain_mongodb_agent/local_agent.py`: understand the workflow
-   without infrastructure.
-2. `src/supply_chain_mongodb_agent/seed.py`: inspect the sample business data,
+1. `src/supply_chain_mongodb_agent/seed.py`: inspect the sample business data,
    knowledge, memories, and prior incidents.
-3. `src/supply_chain_mongodb_agent/tools.py`: see what the connected agent can
+2. `src/supply_chain_mongodb_agent/tools.py`: see what the agent can
    read or draft.
-4. `src/supply_chain_mongodb_agent/agent.py`: see how local mode and Atlas mode
-   are wired.
-5. `src/supply_chain_mongodb_agent/streamlit_app.py`: inspect the small UI wrapper.
+3. `src/supply_chain_mongodb_agent/agent.py`: see how LangGraph, MongoDBSaver,
+   MongoDBStore, tools, and the LLM are wired.
+4. `src/supply_chain_mongodb_agent/streamlit_app.py`: inspect the small UI wrapper.
 
-The local path is deliberately plain Python so the behavior is easy to follow
-before adding LangGraph state, Atlas Vector Search, and an LLM.
-
-## Atlas showcase: connected Atlas + LLM mode
-
-Copy the example environment file and set `DEMO_MODE=atlas`:
-
-```bash
-cp .env.example .env
-```
-
-Fill in the required values. Keep real secrets in `.env` only; `.env` should
-remain untracked.
-
-- `DEMO_MODE=atlas`
-- `MONGODB_URI`
-- `MONGODB_DB`
-- `LLM_API_KEY`
-- `LLM_MODEL`
-- `LLM_BASE_URL`, optional for providers that do not use the default OpenAI API
+## LLM provider configuration
 
 The connected agent uses `langchain-openai`, so any OpenAI-compatible endpoint is
 easy to swap in:
@@ -140,34 +135,6 @@ Authorization header, also set:
 ```bash
 LLM_API_KEY_HEADER=api-key
 LLM_USE_RESPONSES_API=true
-```
-
-Then bootstrap data and indexes:
-
-```bash
-uv run supply-chain-agent doctor
-uv run supply-chain-agent seed
-uv run supply-chain-agent indexes
-```
-
-`indexes` creates three Atlas Vector Search definitions for `autoEmbed`.
-Native `$rerank` must also be enabled in Atlas Project Settings on MongoDB 8.3+.
-
-Atlas mode is **M0-compatible by default** because it creates three Vector
-Search indexes, which fits the Free cluster's three Search / Vector Search index
-limit. For smoother live demos, higher limits, and less resource contention,
-**M10+ is still recommended**.
-
-Run the same guided walkthrough against Atlas and your configured LLM:
-
-```bash
-uv run supply-chain-agent demo
-```
-
-Or ask the connected agent directly:
-
-```bash
-uv run supply-chain-agent ask "Shipment SH-1043 for part BRK-22 is late. What are my options?"
 ```
 
 ## Human-in-the-loop approval
@@ -189,8 +156,8 @@ In the CLI walkthrough, resume the same thread with approval:
 uv run supply-chain-agent approve --thread-id demo-thread
 ```
 
-In local mode the approval/rejection path is simulated. In Atlas mode it resumes
-the persisted LangGraph checkpoint.
+Approval and rejection resume the persisted LangGraph checkpoint for the same
+thread.
 
 ## Suggested demo queries
 
@@ -216,9 +183,7 @@ the persisted LangGraph checkpoint.
 
 ## Best-practice notes
 
-- Local mode is the customer-safe path: no credentials, no network calls, no
-  database writes, deterministic outputs.
-- Atlas mode is the platform showcase: it demonstrates real MongoDB-backed state,
+- Atlas is the platform showcase: it demonstrates real MongoDB-backed state,
   memory, vector search, automated embeddings, and reranking.
 - Seeded memories, episodes, and action drafts include tenant, agent, and user
   scope to model actor-aware isolation.
@@ -235,7 +200,7 @@ uv run supply-chain-agent doctor
 
 Common fixes:
 
-- Missing LLM key: set `LLM_API_KEY` in `.env`, or return to `DEMO_MODE=local`.
+- Missing LLM key: set `LLM_API_KEY` in `.env`.
 - LLM gateway auth fails: check `LLM_BASE_URL`, `LLM_API_KEY_HEADER`, and `LLM_USE_RESPONSES_API`.
 - MongoDB connection fails: check `MONGODB_URI`, Atlas network access, and the IP access list.
 - No scoped demo data: run `uv run supply-chain-agent seed`.
@@ -249,4 +214,4 @@ uv run python -m pytest
 uv run python -m ruff check
 ```
 
-Offline tests do not require Atlas, Voyage, or LLM credentials.
+Offline tests mock external services and do not require Atlas, Voyage, or LLM credentials.

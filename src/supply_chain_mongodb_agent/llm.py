@@ -4,11 +4,11 @@ from supply_chain_mongodb_agent.settings import Settings, get_settings
 
 
 def build_chat_model(settings: Settings | None = None) -> ChatOpenAI:
-    """Build the connected-mode chat model from provider-neutral LLM settings."""
+    """Build the Atlas demo chat model from provider-neutral LLM settings."""
     settings = settings or get_settings()
     llm_key = settings.effective_llm_api_key
     if llm_key is None:
-        raise ValueError("LLM_API_KEY is required when DEMO_MODE=atlas")
+        raise ValueError("LLM_API_KEY is required for the Atlas demo")
 
     api_key = llm_key.get_secret_value()
     kwargs = {

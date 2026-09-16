@@ -8,19 +8,12 @@ from supply_chain_mongodb_agent.settings import Settings, get_settings
 
 
 def doctor_report(settings: Settings | None = None) -> list[dict[str, Any]]:
-    """Return non-sensitive readiness checks for local and Atlas demo modes."""
+    """Return non-sensitive readiness checks for the Atlas demo."""
     settings = settings or get_settings()
     checks = [
         _check("demo_mode", True, f"running in {settings.demo_mode!r} mode"),
-        _check("sample_data", _sample_data_ready(settings), "deterministic sample documents are available"),
+        _check("sample_data", _sample_data_ready(settings), "seedable sample documents are available"),
     ]
-    if settings.demo_mode == "local":
-        checks.extend([
-            _check("credentials", True, "not required in local mode"),
-            _check("atlas_features", True, "simulated locally; enable DEMO_MODE=atlas for real Atlas AI features"),
-        ])
-        return checks
-
     checks.append(_check("llm_provider", True, settings.effective_llm_provider))
     checks.append(_check("llm_base_url", True, "configured" if settings.effective_llm_base_url_configured else "default provider URL"))
     checks.append(_check(

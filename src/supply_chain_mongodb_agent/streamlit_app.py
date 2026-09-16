@@ -8,7 +8,6 @@ from supply_chain_mongodb_agent.agent import (
 )
 from supply_chain_mongodb_agent.db import get_client
 from supply_chain_mongodb_agent.doctor import doctor_report
-from supply_chain_mongodb_agent.local_agent import approve_local_demo, reject_local_demo
 from supply_chain_mongodb_agent.settings import get_settings
 from supply_chain_mongodb_agent.ui import (
     DEMO_PROMPTS,
@@ -68,13 +67,8 @@ def _init_session_state() -> None:
 
 
 def _run_agent(question: str, thread_id: str) -> None:
-    spinner = (
-        "Reasoning with local sample data..."
-        if settings.demo_mode == "local"
-        else "Reasoning with MongoDB Atlas + LLM..."
-    )
-    with st.spinner(spinner):
-        client = None if settings.demo_mode == "local" else get_client(settings)
+    with st.spinner("Reasoning with MongoDB Atlas + LLM..."):
+        client = get_client(settings)
         try:
             agent = build_agent(client, settings)
             result = agent.invoke(
@@ -102,24 +96,15 @@ def _run_agent(question: str, thread_id: str) -> None:
 
 
 def _resume_action(thread_id: str, decision: str) -> None:
-    local_result = approve_local_demo if decision == "approve" else reject_local_demo
     decision_label = "approval" if decision == "approve" else "rejection"
-    spinner = (
-        f"Recording local {decision_label}..."
-        if settings.demo_mode == "local"
-        else f"Resuming persisted LangGraph checkpoint with {decision_label}..."
-    )
-    with st.spinner(spinner):
-        client = None if settings.demo_mode == "local" else get_client(settings)
+    with st.spinner(f"Resuming persisted LangGraph checkpoint with {decision_label}..."):
+        client = get_client(settings)
         try:
-            if settings.demo_mode == "local":
-                result = local_result(thread_id)
-            else:
-                agent = build_agent(client, settings)
-                result = agent.invoke(
-                    Command(resume={"decisions": [{"type": decision}]}),
-                    config={"configurable": {"thread_id": thread_id}},
-                )
+            agent = build_agent(client, settings)
+            result = agent.invoke(
+                Command(resume={"decisions": [{"type": decision}]}),
+                config={"configurable": {"thread_id": thread_id}},
+            )
             st.session_state.last_answer = (
                 extract_latest_text(result) or format_pending_approval(result)
                 or f"{decision_label.title()} recorded for thread `{thread_id}`."

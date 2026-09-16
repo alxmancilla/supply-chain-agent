@@ -1,5 +1,4 @@
 from functools import lru_cache
-from typing import Literal
 from urllib.parse import urlparse
 
 from pydantic import SecretStr
@@ -9,8 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    demo_mode: Literal["local", "atlas"] = "local"
-    mongodb_uri: str = "mongodb://localhost:27017"
+    mongodb_uri: str = "mongodb+srv://<user>:<password>@<cluster>/?retryWrites=true&w=majority"
     mongodb_db: str = "supply_chain_agent"
     mongodb_server_selection_timeout_ms: int = 5000
 
@@ -40,6 +38,10 @@ class Settings(BaseSettings):
     knowledge_vector_index: str = "knowledge_corpus_autoembed"
     memory_vector_index: str = "agent_memories_autoembed"
     episode_vector_index: str = "agent_episodes_autoembed"
+
+    @property
+    def demo_mode(self) -> str:
+        return "atlas"
 
     @property
     def llm_api_key_configured(self) -> bool:

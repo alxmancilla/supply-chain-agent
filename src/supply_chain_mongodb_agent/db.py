@@ -8,7 +8,7 @@ def get_client(settings: Settings | None = None) -> MongoClient:
     """Create a reusable PyMongo client.
 
     This demo intentionally avoids arbitrary pool/timeout tuning. PyMongo's
-    defaults are appropriate for a local CLI/Streamlit demo; tune from Atlas
+    defaults are appropriate for this CLI/Streamlit demo; tune from Atlas
     connection metrics before changing pool parameters for production.
     """
     settings = settings or get_settings()

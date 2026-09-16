@@ -44,21 +44,14 @@ def format_prompt_option(prompt: DemoPrompt) -> str:
 
 
 def mode_name(demo_mode: str) -> str:
-    return "Local demo" if demo_mode == "local" else "Atlas connected"
+    return "Atlas connected"
 
 
 def mode_summary(demo_mode: str) -> str:
-    if demo_mode == "local":
-        return "Credential-free deterministic walkthrough using bundled sample data."
     return "Connected runtime using MongoDB Atlas, LangGraph state, and an LLM."
 
 
 def hero_summary(demo_mode: str) -> str:
-    if demo_mode == "local":
-        return (
-            "A credential-free agent walkthrough using bundled sample data. "
-            "It shows the workflow before connecting to MongoDB Atlas."
-        )
     return (
         "A connected agent demo using MongoDB Atlas for operational data, retrieval, "
         "memory, checkpoints, and approval-gated actions."
@@ -66,13 +59,6 @@ def hero_summary(demo_mode: str) -> str:
 
 
 def mode_metrics(demo_mode: str) -> tuple[tuple[str, str], ...]:
-    if demo_mode == "local":
-        return (
-            ("Data", "Bundled samples"),
-            ("Retrieval", "Deterministic lookup"),
-            ("State", "Simulated thread"),
-            ("Approval", "Simulated resume"),
-        )
     return (
         ("Data", "MongoDB Atlas"),
         ("Retrieval", "Atlas Vector Search"),
@@ -82,11 +68,6 @@ def mode_metrics(demo_mode: str) -> tuple[tuple[str, str], ...]:
 
 
 def workflow_intro(demo_mode: str) -> str:
-    if demo_mode == "local":
-        return (
-            "Local mode simulates this same decision flow with bundled data. "
-            "Atlas mode runs it with MongoDB-backed state, memory, retrieval, and checkpoints."
-        )
     return (
         "This shows the connected Atlas runtime: MongoDB-backed state, memory, "
         "retrieval, checkpoints, and approval records."
@@ -108,9 +89,6 @@ def readiness_status(checks: list[dict[str, Any]]) -> str:
 
 def error_guidance(error_name: str, demo_mode: str) -> list[str]:
     guidance = ["Run `uv run supply-chain-agent doctor` for safe readiness checks."]
-    if demo_mode == "local":
-        guidance.append("Local mode should not require Atlas or LLM credentials; retry from a fresh thread ID.")
-        return guidance
     if "Authentication" in error_name or "Unauthorized" in error_name:
         guidance.append("Check `LLM_API_KEY`, `LLM_BASE_URL`, and `LLM_API_KEY_HEADER` in `.env`.")
     elif "OperationFailure" in error_name:

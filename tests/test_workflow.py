@@ -39,8 +39,6 @@ def test_workflow_diagram_includes_visual_legend() -> None:
 def test_workflow_diagram_only_shows_atlas_flow() -> None:
     dot = workflow_diagram_dot()
 
-    assert "DEMO_MODE=local" not in dot
-    assert "Local agent" not in dot
     assert "Mode router" not in dot
 
 
