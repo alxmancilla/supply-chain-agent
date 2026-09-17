@@ -1,13 +1,16 @@
 # Supply Chain Resolution Agent
 
-Customer-shareable demo showing best practices for a stateful supply-chain agent
-with MongoDB operational data, agent memory, retrieval, and human approval.
+A hands-on demo of a stateful AI agent for supply-chain disruption resolution.
+The agent reads operational data, retrieves policies and prior incidents,
+remembers planner preferences, and pauses for human approval before drafting a
+business-state change.
 
-This repo is intentionally demo-first. It is an **Atlas-only** showcase using
-MongoDB Atlas, Atlas Vector Search automated embeddings, native `$rerank`,
-MongoDB-backed LangGraph state, MongoDB-backed long-term memory, and a
-configurable OpenAI-compatible LLM. If you are presenting the project, start
-with `DEMO.md`.
+This project is intentionally demo-first: start it, ask a realistic disruption
+question, inspect the answer, then open the code to see how the pieces fit
+together. It is **Atlas-only** and uses MongoDB Atlas, Atlas Vector Search
+automated embeddings, native `$rerank`, MongoDB-backed LangGraph state,
+MongoDB-backed long-term memory, and a configurable OpenAI-compatible LLM. If
+you are presenting the project, start with `DEMO.md`.
 
 ## New to agents, MongoDB, or LangChain?
 
@@ -46,6 +49,10 @@ The frameworks and database pieces have specific jobs:
 
 ## Quickstart
 
+Follow these steps to get the Atlas-backed demo running.
+
+### 1. Install dependencies and create `.env`
+
 Copy the example environment file:
 
 ```bash
@@ -62,15 +69,17 @@ Fill in the required Atlas and LLM values in `.env`. Keep real secrets in
 - `LLM_MODEL`
 - `LLM_BASE_URL`, optional for providers that do not use the default OpenAI API
 
-Then bootstrap data and indexes:
+### 2. Validate Atlas setup
+
+Run the validation task before starting the demo:
 
 ```bash
 uv run supply-chain-agent validate
 ```
 
-`validate` pings Atlas, creates B-tree indexes, upserts the scoped seed data,
-ensures the three Atlas Vector Search definitions for `autoEmbed`, and runs
-non-sensitive readiness checks.
+`validate` pings Atlas, creates B-tree indexes, upserts scoped seed data, ensures
+the three Atlas Vector Search definitions for `autoEmbed`, and runs
+non-sensitive readiness checks. It is safe to run repeatedly.
 Native `$rerank` must also be enabled in Atlas Project Settings on MongoDB 8.3+.
 
 The Atlas demo is **M0-compatible by default** because it creates three Vector
@@ -78,7 +87,9 @@ Search indexes, which fits the Free cluster's three Search / Vector Search index
 limit. For smoother live demos, higher limits, and less resource contention,
 **M10+ is still recommended**.
 
-Run the guided walkthrough:
+### 3. Run the demo
+
+Run a guided CLI walkthrough:
 
 ```bash
 uv run supply-chain-agent demo
@@ -90,15 +101,15 @@ Ask your own question:
 uv run supply-chain-agent ask "Shipment SH-1043 for BRK-22 is 6 days late. What are my options?"
 ```
 
-Run the Streamlit UI:
+Or start the Streamlit UI:
 
 ```bash
 uv run supply-chain-agent serve
 ```
 
-Use `serve` for every backend restart. It reruns the Atlas validation task before
-starting Streamlit, which is especially useful on M0 where indexes may need time
-to become queryable.
+Use `serve` for every backend restart. It runs the same Atlas validation task
+before starting Streamlit, which is especially useful on M0 where indexes may
+need time to become queryable.
 
 Open the URL printed by Streamlit, usually `http://localhost:8501`.
 
@@ -110,7 +121,7 @@ The UI has three tabs:
 
 ## What to look at first
 
-If you are new to agentic development, start with these files:
+If you are new to agentic development, these files are the best starting points:
 
 1. `src/supply_chain_mongodb_agent/seed.py`: inspect the sample business data,
    knowledge, memories, and prior incidents.
@@ -118,7 +129,8 @@ If you are new to agentic development, start with these files:
    read or draft.
 3. `src/supply_chain_mongodb_agent/agent.py`: see how LangGraph, MongoDBSaver,
    MongoDBStore, tools, and the LLM are wired.
-4. `src/supply_chain_mongodb_agent/streamlit_app.py`: inspect the small UI wrapper.
+4. `src/supply_chain_mongodb_agent/validation.py`: see the restart validation task.
+5. `src/supply_chain_mongodb_agent/streamlit_app.py`: inspect the small UI wrapper.
 
 ## LLM provider configuration
 
@@ -186,12 +198,12 @@ thread.
 
 ## Best-practice notes
 
-- Atlas is the platform showcase: it demonstrates real MongoDB-backed state,
-  memory, vector search, automated embeddings, and reranking.
+- MongoDB Atlas stores operational data, agent memory, vector-search knowledge,
+  checkpoints, and approval drafts in one platform.
 - Seeded memories, episodes, and action drafts include tenant, agent, and user
   scope to model actor-aware isolation.
 - The approval tool drafts actions instead of pretending to execute them.
-- `doctor` reports non-sensitive readiness and never prints secrets.
+- `doctor` and `validate` report non-sensitive readiness and never print secrets.
 - `serve` runs restart validation before every Streamlit backend launch.
 
 ## Troubleshooting quick guide
