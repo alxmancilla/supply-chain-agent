@@ -11,6 +11,8 @@ from supply_chain_mongodb_agent.doctor import doctor_report
 from supply_chain_mongodb_agent.settings import get_settings
 from supply_chain_mongodb_agent.ui import (
     DEMO_PROMPTS,
+    DEMO_STEPS,
+    VALUE_PILLARS,
     error_guidance,
     format_prompt_option,
     hero_summary,
@@ -54,6 +56,14 @@ def _inject_styles() -> None:
             padding: 1rem;
             background: #ffffff;
         }
+        .story-card {
+            border: 1px solid #bae6fd;
+            border-radius: 14px;
+            padding: 0.85rem;
+            background: #f0f9ff;
+            min-height: 8rem;
+        }
+        .story-card strong { color: #075985; }
         </style>
         """,
         unsafe_allow_html=True,
@@ -75,9 +85,9 @@ def _run_agent(question: str, thread_id: str) -> None:
                 {"messages": [{"role": "user", "content": question}]},
                 config={"configurable": {"thread_id": thread_id}},
             )
-            st.session_state.last_answer = (
-                extract_latest_text(result) or format_pending_approval(result)
-            )
+            st.session_state.last_answer = extract_latest_text(
+                result
+            ) or format_pending_approval(result)
             st.session_state.last_error = ""
             st.session_state.last_metadata = {
                 "mode": settings.demo_mode,
@@ -97,7 +107,9 @@ def _run_agent(question: str, thread_id: str) -> None:
 
 def _resume_action(thread_id: str, decision: str) -> None:
     decision_label = "approval" if decision == "approve" else "rejection"
-    with st.spinner(f"Resuming persisted LangGraph checkpoint with {decision_label}..."):
+    with st.spinner(
+        f"Resuming persisted LangGraph checkpoint with {decision_label}..."
+    ):
         client = get_client(settings)
         try:
             agent = build_agent(client, settings)
@@ -106,7 +118,8 @@ def _resume_action(thread_id: str, decision: str) -> None:
                 config={"configurable": {"thread_id": thread_id}},
             )
             st.session_state.last_answer = (
-                extract_latest_text(result) or format_pending_approval(result)
+                extract_latest_text(result)
+                or format_pending_approval(result)
                 or f"{decision_label.title()} recorded for thread `{thread_id}`."
             )
             st.session_state.last_error = ""
@@ -155,10 +168,9 @@ def _render_sidebar() -> str:
 
         st.divider()
         st.subheader("What to demo")
-        st.caption("1. Ask a disruption question")
-        st.caption("2. Inspect cited reasoning")
-        st.caption("3. Trigger approval with the approval workflow prompt")
-        st.caption("4. Approve or reject using the same thread ID")
+        for step in DEMO_STEPS:
+            st.caption(f"{step.title}: `{step.prompt_label}`")
+        st.caption("Use one Thread ID to show checkpoint-backed pause/resume.")
         return thread_id
 
 
@@ -171,6 +183,7 @@ st.markdown(
     f"""
     <div class="hero-card">
       <span class="pill">{mode_name(settings.demo_mode)}</span>
+      <span class="pill">MongoDB + LangChain</span>
       <span class="pill">Atlas-ready</span>
       <span class="pill">Human-in-the-loop</span>
       <h1>🚚 Supply Chain Resolution Agent</h1>
@@ -181,24 +194,50 @@ st.markdown(
 )
 
 st.write("")
+pillar_cols = st.columns(4)
+for column, (title, body) in zip(pillar_cols, VALUE_PILLARS, strict=True):
+    column.markdown(
+        f"""
+        <div class="story-card">
+          <strong>{title}</strong><br />
+          <span class="muted">{body}</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+st.write("")
 metric_cols = st.columns(4)
-for column, (label, value) in zip(metric_cols, mode_metrics(settings.demo_mode), strict=True):
+for column, (label, value) in zip(
+    metric_cols, mode_metrics(settings.demo_mode), strict=True
+):
     column.metric(label, value)
 
-ask_tab, workflow_tab, readiness_tab = st.tabs([
-    "💬 Ask Agent",
-    "🧭 Workflow",
-    "✅ Readiness",
-])
+ask_tab, workflow_tab, readiness_tab = st.tabs(
+    [
+        "💬 Ask Agent",
+        "🧭 Workflow",
+        "✅ Readiness",
+    ]
+)
 
 with ask_tab:
-    st.subheader("Run a guided disruption scenario")
+    st.subheader("Run the MongoDB + LangChain story")
+    with st.expander("Recommended presenter flow", expanded=True):
+        for step in DEMO_STEPS:
+            st.markdown(
+                f"- **{step.title}** — choose **{step.prompt_label}**. {step.value}"
+            )
     selected_prompt = st.selectbox(
         "Scenario",
         DEMO_PROMPTS,
         format_func=format_prompt_option,
     )
     st.caption(selected_prompt.intent)
+    st.info(
+        "Presenter tip: after the answer, point out which Atlas collection/tool was used, "
+        "then open Workflow to connect that moment to LangChain and LangGraph."
+    )
     question = st.text_area(
         "Question for the agent",
         selected_prompt.question,
@@ -232,11 +271,16 @@ with workflow_tab:
     role_cols = st.columns(2)
     role_cols[0].info(
         "**Agent frameworks**\n\n"
-        "**LangChain:** tool wrappers and model interfaces.\n\n"
+        "**LangChain:** turns MongoDB reads/writes into safe agent tools "
+        "and connects the LLM.\n\n"
         "**LangGraph:** state transitions, checkpoints, interrupts.\n\n"
         "**Deep Agents:** planning and tool-use loop."
     )
-    role_cols[1].info("**MongoDB Atlas**\n\nOperational data, vector search, checkpoints, and memory.")
+    role_cols[1].info(
+        "**MongoDB Atlas**\n\n"
+        "Operational collections, Atlas Vector Search, MongoDBStore memory, "
+        "MongoDBSaver checkpoints, and approval drafts."
+    )
 
     with st.expander("Architecture notes", expanded=True):
         for note in workflow_notes():
@@ -244,7 +288,10 @@ with workflow_tab:
 
 with readiness_tab:
     st.subheader("Readiness dashboard")
-    st.caption("Non-sensitive status only; secrets are never printed.")
+    st.caption(
+        "Non-sensitive status only; secrets are never printed. `serve` runs this "
+        "validation before startup."
+    )
     checks = doctor_report(settings)
     summary = readiness_summary(checks)
 

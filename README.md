@@ -115,7 +115,7 @@ Open the URL printed by Streamlit, usually `http://localhost:8501`.
 
 The UI has three tabs:
 
-- **Ask Agent**: run guided disruption scenarios and approve or reject pending actions.
+- **Ask Agent**: follow a guided MongoDB + LangChain story, run disruption scenarios, and approve or reject pending actions.
 - **Workflow**: explain the Atlas-connected agent lifecycle and supporting frameworks.
 - **Readiness**: show non-sensitive Atlas setup checks.
 
@@ -195,6 +195,19 @@ thread.
 
 - `For SH-1043, use live data, playbooks, planner memory, and prior incidents to recommend the lowest-risk action.`
 - `For SH-2048, explain the operational state, relevant SOP, similar episode, and whether approval is required.`
+
+## Best demo path
+
+For a short presentation, use the Streamlit prompts in this order:
+
+1. **Late critical shipment** — shows MongoDB operational collections grounding the answer.
+2. **Full platform story** — combines live-style data, Atlas Vector Search, memory, and LLM reasoning.
+3. **Planner memory** — makes MongoDB-backed long-term memory explicit.
+4. **Approval workflow** — shows LangGraph checkpoint pause/resume backed by MongoDB.
+
+That sequence makes the value easy to explain: MongoDB Atlas supplies the data,
+retrieval, memory, state, and action records; LangChain and LangGraph orchestrate
+how the LLM uses those capabilities safely.
 
 ## Best-practice notes
 

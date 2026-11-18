@@ -9,6 +9,33 @@ class DemoPrompt:
     intent: str
 
 
+@dataclass(frozen=True)
+class DemoStep:
+    title: str
+    prompt_label: str
+    value: str
+
+
+VALUE_PILLARS: tuple[tuple[str, str], ...] = (
+    (
+        "MongoDB Atlas",
+        "Operational data, checkpoints, memory, and approval drafts in one place.",
+    ),
+    (
+        "Atlas Vector Search",
+        "Retrieves policies, planner memories, and prior incidents with auto-embedding.",
+    ),
+    (
+        "LangChain tools",
+        "Connects the LLM to safe read tools and approval-gated write tools.",
+    ),
+    (
+        "LangGraph state",
+        "Persists thread state so approval and rejection can resume the same workflow.",
+    ),
+)
+
+
 DEMO_PROMPTS: tuple[DemoPrompt, ...] = (
     DemoPrompt(
         "Late critical shipment",
@@ -21,6 +48,11 @@ DEMO_PROMPTS: tuple[DemoPrompt, ...] = (
         "Show long-term memory and prior incident retrieval.",
     ),
     DemoPrompt(
+        "Planner memory",
+        "Do I have any planner preferences relevant to premium freight?",
+        "Show user-scoped memory stored and retrieved from MongoDB Atlas.",
+    ),
+    DemoPrompt(
         "Quality hold comparison",
         "Compare this CELL-9 quality hold with prior incidents and recommend next steps.",
         "Compare current disruption patterns against historical episodes.",
@@ -31,10 +63,39 @@ DEMO_PROMPTS: tuple[DemoPrompt, ...] = (
         "Explain whether a state-changing action is justified.",
     ),
     DemoPrompt(
+        "Full platform story",
+        "For SH-1043, use live data, playbooks, planner memory, and prior incidents to recommend the lowest-risk action.",
+        "Show operational data, vector search, memory, and agent reasoning together.",
+    ),
+    DemoPrompt(
         "Approval workflow",
         "Draft an approval request to expedite SH-1043 with premium freight because "
         "BRK-22 has under 3 days of cover.",
         "Demonstrate human-in-the-loop approval before action.",
+    ),
+)
+
+
+DEMO_STEPS: tuple[DemoStep, ...] = (
+    DemoStep(
+        "1. Ground the agent in live-style data",
+        "Late critical shipment",
+        "MongoDB stores shipments, parts, suppliers, POs, and inventory.",
+    ),
+    DemoStep(
+        "2. Add semantic context",
+        "Full platform story",
+        "Atlas Vector Search retrieves playbooks, memories, and prior incidents.",
+    ),
+    DemoStep(
+        "3. Prove memory",
+        "Planner memory",
+        "MongoDBStore and scoped collections keep planner preferences reusable.",
+    ),
+    DemoStep(
+        "4. Pause before action",
+        "Approval workflow",
+        "LangGraph checkpoints let the workflow resume after approval or rejection.",
     ),
 )
 
@@ -53,8 +114,9 @@ def mode_summary(demo_mode: str) -> str:
 
 def hero_summary(demo_mode: str) -> str:
     return (
-        "A connected agent demo using MongoDB Atlas for operational data, retrieval, "
-        "memory, checkpoints, and approval-gated actions."
+        "A guided MongoDB + LangChain demo: MongoDB Atlas stores operational data, "
+        "vector-search knowledge, memory, checkpoints, and approval-gated action "
+        "drafts while LangChain and LangGraph orchestrate the agent workflow."
     )
 
 
@@ -69,8 +131,9 @@ def mode_metrics(demo_mode: str) -> tuple[tuple[str, str], ...]:
 
 def workflow_intro(demo_mode: str) -> str:
     return (
-        "This shows the connected Atlas runtime: MongoDB-backed state, memory, "
-        "retrieval, checkpoints, and approval records."
+        "This shows how MongoDB Atlas and LangChain work together: tools read Atlas data, "
+        "Vector Search retrieves context, LangGraph checkpoints state, and human approval "
+        "resumes the same workflow."
     )
 
 
@@ -88,13 +151,22 @@ def readiness_status(checks: list[dict[str, Any]]) -> str:
 
 
 def error_guidance(error_name: str, demo_mode: str) -> list[str]:
-    guidance = ["Run `uv run supply-chain-agent doctor` for safe readiness checks."]
+    guidance = ["Run `uv run supply-chain-agent validate` for safe readiness checks."]
     if "Authentication" in error_name or "Unauthorized" in error_name:
-        guidance.append("Check `LLM_API_KEY`, `LLM_BASE_URL`, and `LLM_API_KEY_HEADER` in `.env`.")
+        guidance.append(
+            "Check `LLM_API_KEY`, `LLM_BASE_URL`, and `LLM_API_KEY_HEADER` in `.env`."
+        )
     elif "OperationFailure" in error_name:
-        guidance.append("Check Atlas Search / Vector Search indexes with `uv run supply-chain-agent indexes`.")
+        guidance.append(
+            "Check Atlas Search / Vector Search indexes with "
+            "`uv run supply-chain-agent validate`."
+        )
     elif "ServerSelection" in error_name or "Connection" in error_name:
-        guidance.append("Check `MONGODB_URI`, Atlas network access, and your IP access list.")
+        guidance.append(
+            "Check `MONGODB_URI`, Atlas network access, and your IP access list."
+        )
     else:
-        guidance.append("If this happened during approval, reuse the same Thread ID that created the pending request.")
+        guidance.append(
+            "If this happened during approval, reuse the same Thread ID that created the pending request."
+        )
     return guidance

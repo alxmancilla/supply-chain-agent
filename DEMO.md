@@ -20,12 +20,13 @@ stateful and resumable.
 
 ## 5-Minute Presenter Flow
 
-1. Run **Readiness** or `doctor` to show safe setup checks.
-2. Ask the `SH-1043` disruption question in Streamlit.
-3. Trigger the approval workflow prompt.
-4. Approve or reject the pending action using the same Thread ID.
-5. Open **Workflow** to explain MongoDB Atlas, LangChain, LangGraph, and Deep Agents.
-6. Close with how MongoDB stores data, memory, checkpoints, and approval records.
+1. Start with **Readiness** to show Atlas data, LLM configuration, and the three M0-compatible Vector Search indexes are ready.
+2. Choose **Late critical shipment** to show the agent grounding its answer in operational MongoDB collections.
+3. Choose **Full platform story** to show operational data, playbooks, planner memory, prior incidents, and LLM reasoning working together.
+4. Choose **Planner memory** or **Prior incident recall** to make memory easy to explain.
+5. Choose **Approval workflow**, then approve or reject using the same Thread ID to show MongoDB-backed LangGraph checkpoints.
+6. Open **Workflow** to explain how MongoDB Atlas, LangChain, LangGraph, and Deep Agents fit together.
+7. Close with the platform message: MongoDB stores data, vector-search context, memory, checkpoints, and approval records for the agent.
 
 ## 1. Atlas Showcase Path
 
@@ -96,13 +97,13 @@ Streamlit starts, so the demo verifies data and indexes each time.
 
 Demo flow:
 
-1. Open **Ask Agent** and pick the late `SH-1043` example.
-2. Ask the agent.
-3. Pick the approval request example.
-4. Ask the agent again.
-5. Click **Approve pending action** or **Reject pending action** using the same thread ID.
+1. Open **Readiness** and confirm the validation checks are green.
+2. Open **Ask Agent** and use the recommended presenter flow at the top of the tab.
+3. Ask **Late critical shipment** to show operational data grounding.
+4. Ask **Full platform story** to show retrieval, memory, and reasoning together.
+5. Ask **Approval workflow**, then click **Approve pending action** or **Reject pending action** using the same Thread ID.
 6. Open **Workflow** to explain LangChain, LangGraph, Deep Agents, and MongoDB Atlas.
-7. Open **Readiness** to show Atlas configuration status.
+7. Close by naming the MongoDB benefits: operational data, vector search, memory, checkpoints, and approval history in Atlas.
 
 ## 3. What Just Happened
 
