@@ -11,7 +11,6 @@ from supply_chain_mongodb_agent.doctor import doctor_report
 from supply_chain_mongodb_agent.settings import get_settings
 from supply_chain_mongodb_agent.ui import (
     DEMO_PROMPTS,
-    DEMO_STEPS,
     VALUE_PILLARS,
     error_guidance,
     format_prompt_option,
@@ -23,7 +22,7 @@ from supply_chain_mongodb_agent.ui import (
     readiness_summary,
     workflow_intro,
 )
-from supply_chain_mongodb_agent.workflow import workflow_diagram_dot, workflow_notes
+from supply_chain_mongodb_agent.workflow import workflow_diagram_dot
 
 st.set_page_config(page_title="Supply Chain Agent", page_icon="🚚", layout="wide")
 
@@ -165,12 +164,6 @@ def _render_sidebar() -> str:
         st.caption(f"Realm: `{settings.realm_id}`")
         st.caption(f"Agent: `{settings.agent_id}`")
         st.caption(f"User: `{settings.user_id}`")
-
-        st.divider()
-        st.subheader("What to demo")
-        for step in DEMO_STEPS:
-            st.caption(f"{step.title}: `{step.prompt_label}`")
-        st.caption("Use one Thread ID to show checkpoint-backed pause/resume.")
         return thread_id
 
 
@@ -222,27 +215,16 @@ ask_tab, workflow_tab, readiness_tab = st.tabs(
 )
 
 with ask_tab:
-    st.subheader("Run the MongoDB + LangChain story")
-    with st.expander("Recommended presenter flow", expanded=True):
-        for step in DEMO_STEPS:
-            st.markdown(
-                f"- **{step.title}** — choose **{step.prompt_label}**. {step.value}"
-            )
+    st.subheader("Ask the agent")
     selected_prompt = st.selectbox(
         "Scenario",
         DEMO_PROMPTS,
         format_func=format_prompt_option,
     )
-    st.caption(selected_prompt.intent)
-    st.info(
-        "Presenter tip: after the answer, point out which Atlas collection/tool was used, "
-        "then open Workflow to connect that moment to LangChain and LangGraph."
-    )
     question = st.text_area(
         "Question for the agent",
         selected_prompt.question,
         height=140,
-        help="Use the approval workflow prompt to demonstrate pause/resume.",
     )
     ask_col, approve_col, reject_col, clear_col = st.columns([0.34, 0.26, 0.26, 0.14])
     if ask_col.button("Ask agent", type="primary", width="stretch"):
@@ -262,10 +244,6 @@ with ask_tab:
 with workflow_tab:
     st.subheader("How the agent works")
     st.info(workflow_intro(settings.demo_mode))
-    st.caption(
-        "The main path is shown first; framework and MongoDB services appear as "
-        "supporting callouts so the workflow is easier to follow."
-    )
     st.graphviz_chart(workflow_diagram_dot(), width="stretch")
 
     role_cols = st.columns(2)
@@ -281,10 +259,6 @@ with workflow_tab:
         "Operational collections, Atlas Vector Search, MongoDBStore memory, "
         "MongoDBSaver checkpoints, and approval drafts."
     )
-
-    with st.expander("Architecture notes", expanded=True):
-        for note in workflow_notes():
-            st.markdown(f"- {note}")
 
 with readiness_tab:
     st.subheader("Readiness dashboard")

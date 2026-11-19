@@ -1,6 +1,5 @@
 from supply_chain_mongodb_agent.ui import (
     DEMO_PROMPTS,
-    DEMO_STEPS,
     VALUE_PILLARS,
     error_guidance,
     format_prompt_option,
@@ -25,21 +24,18 @@ def test_demo_prompts_include_approval_workflow() -> None:
 
 def test_demo_story_highlights_mongodb_langchain_value() -> None:
     pillar_text = "\n".join(f"{title}: {body}" for title, body in VALUE_PILLARS)
-    step_text = "\n".join(f"{step.title}: {step.value}" for step in DEMO_STEPS)
 
     assert "MongoDB Atlas" in pillar_text
     assert "Atlas Vector Search" in pillar_text
     assert "LangChain tools" in pillar_text
     assert "LangGraph state" in pillar_text
-    assert "checkpoints" in step_text
-    assert "memory" in step_text
 
 
-def test_format_prompt_option_combines_label_and_intent() -> None:
+def test_format_prompt_option_uses_simple_label() -> None:
     option = format_prompt_option(DEMO_PROMPTS[0])
 
-    assert DEMO_PROMPTS[0].label in option
-    assert DEMO_PROMPTS[0].intent in option
+    assert option == DEMO_PROMPTS[0].label
+    assert DEMO_PROMPTS[0].intent not in option
 
 
 def test_mode_copy_is_demo_friendly() -> None:

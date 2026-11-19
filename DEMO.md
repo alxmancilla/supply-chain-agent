@@ -98,7 +98,7 @@ Streamlit starts, so the demo verifies data and indexes each time.
 Demo flow:
 
 1. Open **Readiness** and confirm the validation checks are green.
-2. Open **Ask Agent** and use the recommended presenter flow at the top of the tab.
+2. Open **Ask Agent** and choose scenarios from the simple picker.
 3. Ask **Late critical shipment** to show operational data grounding.
 4. Ask **Full platform story** to show retrieval, memory, and reasoning together.
 5. Ask **Approval workflow**, then click **Approve pending action** or **Reject pending action** using the same Thread ID.

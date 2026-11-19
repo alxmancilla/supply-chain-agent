@@ -9,13 +9,6 @@ class DemoPrompt:
     intent: str
 
 
-@dataclass(frozen=True)
-class DemoStep:
-    title: str
-    prompt_label: str
-    value: str
-
-
 VALUE_PILLARS: tuple[tuple[str, str], ...] = (
     (
         "MongoDB Atlas",
@@ -76,32 +69,8 @@ DEMO_PROMPTS: tuple[DemoPrompt, ...] = (
 )
 
 
-DEMO_STEPS: tuple[DemoStep, ...] = (
-    DemoStep(
-        "1. Ground the agent in live-style data",
-        "Late critical shipment",
-        "MongoDB stores shipments, parts, suppliers, POs, and inventory.",
-    ),
-    DemoStep(
-        "2. Add semantic context",
-        "Full platform story",
-        "Atlas Vector Search retrieves playbooks, memories, and prior incidents.",
-    ),
-    DemoStep(
-        "3. Prove memory",
-        "Planner memory",
-        "MongoDBStore and scoped collections keep planner preferences reusable.",
-    ),
-    DemoStep(
-        "4. Pause before action",
-        "Approval workflow",
-        "LangGraph checkpoints let the workflow resume after approval or rejection.",
-    ),
-)
-
-
 def format_prompt_option(prompt: DemoPrompt) -> str:
-    return f"{prompt.label} — {prompt.intent}"
+    return prompt.label
 
 
 def mode_name(demo_mode: str) -> str:
@@ -114,7 +83,7 @@ def mode_summary(demo_mode: str) -> str:
 
 def hero_summary(demo_mode: str) -> str:
     return (
-        "A guided MongoDB + LangChain demo: MongoDB Atlas stores operational data, "
+        "A MongoDB + LangChain demo: MongoDB Atlas stores operational data, "
         "vector-search knowledge, memory, checkpoints, and approval-gated action "
         "drafts while LangChain and LangGraph orchestrate the agent workflow."
     )
