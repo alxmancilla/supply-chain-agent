@@ -1,3 +1,5 @@
+from html import escape
+
 import streamlit as st
 from langgraph.types import Command
 
@@ -67,7 +69,40 @@ def _inject_styles() -> None:
             min-height: 8rem;
         }
         .story-card strong { color: #075985; }
+        .state-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 0.65rem 0.75rem;
+            background: #f8fafc;
+        }
+        .state-label {
+            color: #64748b;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .state-value {
+            color: #0f172a;
+            font-size: 0.9rem;
+            font-weight: 650;
+            line-height: 1.25;
+            margin-top: 0.18rem;
+            overflow-wrap: anywhere;
+        }
         </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _render_small_value_card(column: object, label: str, value: object) -> None:
+    column.markdown(
+        f"""
+        <div class="state-card">
+          <div class="state-label">{escape(label)}</div>
+          <div class="state-value">{escape(str(value))}</div>
+        </div>
         """,
         unsafe_allow_html=True,
     )
@@ -241,7 +276,7 @@ def _render_evidence_panel(
             thread_state_summary(metadata).items(),
             strict=True,
         ):
-            column.metric(label, value)
+            _render_small_value_card(column, label, value)
 
         if evidence:
             st.dataframe(evidence, width="stretch", hide_index=True)
@@ -327,7 +362,7 @@ metric_cols = st.columns(4)
 for column, (label, value) in zip(
     metric_cols, mode_metrics(settings.demo_mode), strict=True
 ):
-    column.metric(label, value)
+    _render_small_value_card(column, label, value)
 
 ask_tab, workflow_tab, readiness_tab = st.tabs(
     [
