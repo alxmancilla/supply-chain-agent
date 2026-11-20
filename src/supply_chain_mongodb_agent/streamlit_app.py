@@ -77,9 +77,11 @@ def _init_session_state() -> None:
     st.session_state.setdefault("last_metadata", {})
     st.session_state.setdefault("last_evidence", [])
     st.session_state.setdefault("last_action_draft", {})
+    st.session_state.setdefault("chat_history", [])
 
 
 def _run_agent(question: str, thread_id: str) -> None:
+    _append_chat("user", question)
     with st.spinner("Reasoning with MongoDB Atlas + LLM..."):
         client = get_client(settings)
         try:
@@ -104,9 +106,21 @@ def _run_agent(question: str, thread_id: str) -> None:
             }
             st.session_state.last_evidence = evidence_from_result(result)
             st.session_state.last_action_draft = _latest_action_draft(client)
+            _append_chat(
+                "assistant",
+                st.session_state.last_answer,
+                metadata=st.session_state.last_metadata,
+                evidence=st.session_state.last_evidence,
+                action_draft=st.session_state.last_action_draft,
+            )
         except Exception as exc:  # noqa: BLE001 - UI boundary needs guided errors.
             st.session_state.last_answer = ""
             st.session_state.last_error = exc.__class__.__name__
+            _append_chat(
+                "assistant",
+                _format_error_message(st.session_state.last_error),
+                metadata={"thread_id": thread_id, "pending_approval": False},
+            )
         finally:
             if client is not None:
                 client.close()
@@ -114,6 +128,7 @@ def _run_agent(question: str, thread_id: str) -> None:
 
 def _resume_action(thread_id: str, decision: str) -> None:
     decision_label = "approval" if decision == "approve" else "rejection"
+    _append_chat("user", f"{decision_label.title()} submitted.")
     with st.spinner(
         f"Resuming persisted LangGraph checkpoint with {decision_label}..."
     ):
@@ -138,47 +153,99 @@ def _resume_action(thread_id: str, decision: str) -> None:
             }
             st.session_state.last_evidence = evidence_from_result(result)
             st.session_state.last_action_draft = _latest_action_draft(client)
+            _append_chat(
+                "assistant",
+                st.session_state.last_answer,
+                metadata=st.session_state.last_metadata,
+                evidence=st.session_state.last_evidence,
+                action_draft=st.session_state.last_action_draft,
+            )
         except Exception as exc:  # noqa: BLE001 - UI boundary needs guided errors.
             st.session_state.last_error = exc.__class__.__name__
+            _append_chat(
+                "assistant",
+                _format_error_message(st.session_state.last_error),
+                metadata={"thread_id": thread_id, "decision": decision},
+            )
         finally:
             if client is not None:
                 client.close()
 
 
-def _render_answer_panel() -> None:
+def _append_chat(
+    role: str,
+    content: str,
+    metadata: dict[str, object] | None = None,
+    evidence: list[dict[str, str]] | None = None,
+    action_draft: dict[str, object] | None = None,
+) -> None:
+    st.session_state.chat_history.append(
+        {
+            "role": role,
+            "content": content,
+            "metadata": metadata or {},
+            "evidence": evidence or [],
+            "action_draft": action_draft or {},
+        }
+    )
+
+
+def _format_error_message(error_name: str) -> str:
+    guidance = "\n".join(
+        f"- {item}" for item in error_guidance(error_name, settings.demo_mode)
+    )
+    return f"Request failed: `{error_name}`\n\n{guidance}"
+
+
+def _render_chat_panel() -> None:
     if st.session_state.last_error:
         st.error(f"Request failed: {st.session_state.last_error}")
         for guidance in error_guidance(st.session_state.last_error, settings.demo_mode):
             st.caption(guidance)
+
+    if not st.session_state.chat_history:
+        with st.chat_message("assistant"):
+            st.markdown(
+                "Ask me about a shipment, part, planner memory, prior incident, "
+                "or approval workflow."
+            )
         return
-    if not st.session_state.last_answer:
-        st.info("Choose a scenario, then ask the agent to generate a recommendation.")
-        return
-    if "Pending human approval" in st.session_state.last_answer:
-        st.warning("This response is paused for human approval.")
-    else:
-        st.success("Agent response ready")
-    st.markdown(st.session_state.last_answer)
-    _render_evidence_panel()
+
+    for index, message in enumerate(st.session_state.chat_history):
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+            if message["role"] == "assistant" and message.get("metadata"):
+                _render_evidence_panel(
+                    metadata=message.get("metadata", {}),
+                    evidence=message.get("evidence", []),
+                    draft=message.get("action_draft", {}),
+                    expanded=index == len(st.session_state.chat_history) - 1,
+                )
 
 
-def _render_evidence_panel() -> None:
-    with st.expander("Evidence and state", expanded=True):
+def _render_evidence_panel(
+    metadata: dict[str, object] | None = None,
+    evidence: list[dict[str, str]] | None = None,
+    draft: dict[str, object] | None = None,
+    expanded: bool = True,
+) -> None:
+    metadata = metadata or st.session_state.last_metadata
+    evidence = evidence if evidence is not None else st.session_state.last_evidence
+    draft = draft if draft is not None else st.session_state.last_action_draft
+    with st.expander("Evidence and state", expanded=expanded):
         state_cols = st.columns(3)
         for column, (label, value) in zip(
             state_cols,
-            thread_state_summary(st.session_state.last_metadata).items(),
+            thread_state_summary(metadata).items(),
             strict=True,
         ):
             column.metric(label, value)
 
-        evidence = st.session_state.last_evidence
         if evidence:
             st.dataframe(evidence, width="stretch", hide_index=True)
         else:
             st.caption("No MongoDB-backed tool evidence was captured for this turn.")
 
-        draft = st.session_state.last_action_draft
         if draft:
             st.markdown("**Latest approval draft**")
             st.json(draft)
@@ -270,32 +337,34 @@ ask_tab, workflow_tab, readiness_tab = st.tabs(
 
 with ask_tab:
     st.subheader("Ask the agent")
-    selected_prompt = st.selectbox(
-        "Scenario",
+    scenario_col, run_col = st.columns([0.74, 0.26])
+    selected_prompt = scenario_col.selectbox(
+        "Try a scenario",
         DEMO_PROMPTS,
         format_func=format_prompt_option,
+        label_visibility="collapsed",
     )
-    question = st.text_area(
-        "Question for the agent",
-        selected_prompt.question,
-        height=140,
-    )
-    ask_col, approve_col, reject_col, clear_col = st.columns([0.34, 0.26, 0.26, 0.14])
-    if ask_col.button("Ask agent", type="primary", width="stretch"):
-        _run_agent(question, thread_id)
+    if run_col.button("Run scenario", type="primary", width="stretch"):
+        _run_agent(selected_prompt.question, thread_id)
+
+    approve_col, reject_col, clear_col = st.columns([0.34, 0.34, 0.32])
     if approve_col.button("Approve pending action", width="stretch"):
         _resume_action(thread_id, "approve")
     if reject_col.button("Reject pending action", width="stretch"):
         _resume_action(thread_id, "reject")
-    if clear_col.button("Clear", width="stretch"):
+    if clear_col.button("Clear chat", width="stretch"):
         st.session_state.last_answer = ""
         st.session_state.last_error = ""
         st.session_state.last_metadata = {}
         st.session_state.last_evidence = []
         st.session_state.last_action_draft = {}
+        st.session_state.chat_history = []
 
     st.divider()
-    _render_answer_panel()
+    _render_chat_panel()
+    if question := st.chat_input("Ask about a shipment, part, memory, or approval..."):
+        _run_agent(question, thread_id)
+        st.rerun()
 
 with workflow_tab:
     st.subheader("How the agent works")
