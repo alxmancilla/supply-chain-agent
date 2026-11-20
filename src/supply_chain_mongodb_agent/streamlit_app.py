@@ -6,13 +6,14 @@ from supply_chain_mongodb_agent.agent import (
     extract_latest_text,
     format_pending_approval,
 )
-from supply_chain_mongodb_agent.db import get_client
+from supply_chain_mongodb_agent.db import get_client, get_database
 from supply_chain_mongodb_agent.doctor import doctor_report
 from supply_chain_mongodb_agent.settings import get_settings
 from supply_chain_mongodb_agent.ui import (
     DEMO_PROMPTS,
     VALUE_PILLARS,
     error_guidance,
+    evidence_from_result,
     format_prompt_option,
     hero_summary,
     mode_metrics,
@@ -20,6 +21,7 @@ from supply_chain_mongodb_agent.ui import (
     mode_summary,
     readiness_status,
     readiness_summary,
+    thread_state_summary,
     workflow_intro,
 )
 from supply_chain_mongodb_agent.workflow import workflow_diagram_dot
@@ -73,6 +75,8 @@ def _init_session_state() -> None:
     st.session_state.setdefault("last_answer", "")
     st.session_state.setdefault("last_error", "")
     st.session_state.setdefault("last_metadata", {})
+    st.session_state.setdefault("last_evidence", [])
+    st.session_state.setdefault("last_action_draft", {})
 
 
 def _run_agent(question: str, thread_id: str) -> None:
@@ -88,6 +92,7 @@ def _run_agent(question: str, thread_id: str) -> None:
                 result
             ) or format_pending_approval(result)
             st.session_state.last_error = ""
+            pending_approval = "Pending human approval" in st.session_state.last_answer
             st.session_state.last_metadata = {
                 "mode": settings.demo_mode,
                 "thread_id": thread_id,
@@ -95,7 +100,10 @@ def _run_agent(question: str, thread_id: str) -> None:
                 "realm_id": settings.realm_id,
                 "agent_id": settings.agent_id,
                 "user_id": settings.user_id,
+                "pending_approval": pending_approval,
             }
+            st.session_state.last_evidence = evidence_from_result(result)
+            st.session_state.last_action_draft = _latest_action_draft(client)
         except Exception as exc:  # noqa: BLE001 - UI boundary needs guided errors.
             st.session_state.last_answer = ""
             st.session_state.last_error = exc.__class__.__name__
@@ -126,7 +134,10 @@ def _resume_action(thread_id: str, decision: str) -> None:
                 "mode": settings.demo_mode,
                 "thread_id": thread_id,
                 "decision": decision,
+                "pending_approval": False,
             }
+            st.session_state.last_evidence = evidence_from_result(result)
+            st.session_state.last_action_draft = _latest_action_draft(client)
         except Exception as exc:  # noqa: BLE001 - UI boundary needs guided errors.
             st.session_state.last_error = exc.__class__.__name__
         finally:
@@ -148,8 +159,51 @@ def _render_answer_panel() -> None:
     else:
         st.success("Agent response ready")
     st.markdown(st.session_state.last_answer)
-    with st.expander("Run details"):
-        st.json(st.session_state.last_metadata)
+    _render_evidence_panel()
+
+
+def _render_evidence_panel() -> None:
+    with st.expander("Evidence and state", expanded=True):
+        state_cols = st.columns(3)
+        for column, (label, value) in zip(
+            state_cols,
+            thread_state_summary(st.session_state.last_metadata).items(),
+            strict=True,
+        ):
+            column.metric(label, value)
+
+        evidence = st.session_state.last_evidence
+        if evidence:
+            st.dataframe(evidence, width="stretch", hide_index=True)
+        else:
+            st.caption("No MongoDB-backed tool evidence was captured for this turn.")
+
+        draft = st.session_state.last_action_draft
+        if draft:
+            st.markdown("**Latest approval draft**")
+            st.json(draft)
+
+
+def _latest_action_draft(client: object) -> dict[str, object]:
+    db = get_database(client, settings)
+    draft = db.action_drafts.find_one(
+        {
+            "realm_id": settings.realm_id,
+            "agent_id": settings.agent_id,
+            "user_id": settings.user_id,
+        },
+        projection={"_id": 0},
+        sort=[("created_at", -1)],
+    )
+    if not draft:
+        return {}
+    return {key: _json_safe(value) for key, value in draft.items()}
+
+
+def _json_safe(value: object) -> object:
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    return value
 
 
 def _render_sidebar() -> str:
@@ -237,6 +291,8 @@ with ask_tab:
         st.session_state.last_answer = ""
         st.session_state.last_error = ""
         st.session_state.last_metadata = {}
+        st.session_state.last_evidence = []
+        st.session_state.last_action_draft = {}
 
     st.divider()
     _render_answer_panel()

@@ -29,6 +29,34 @@ VALUE_PILLARS: tuple[tuple[str, str], ...] = (
 )
 
 
+TOOL_EVIDENCE: dict[str, tuple[str, str]] = {
+    "get_supply_chain_snapshot": (
+        "Operational data",
+        "shipments, parts, inventory, purchase_orders, suppliers",
+    ),
+    "search_supply_chain_knowledge": (
+        "Atlas Vector Search",
+        "knowledge_corpus",
+    ),
+    "recall_planner_memory": (
+        "Planner memory",
+        "agent_memories",
+    ),
+    "recall_prior_incidents": (
+        "Prior incidents",
+        "agent_episodes",
+    ),
+    "submit_action_for_approval": (
+        "Approval draft",
+        "action_drafts",
+    ),
+    "remember_resolution": (
+        "Memory write",
+        "agent_memories",
+    ),
+}
+
+
 DEMO_PROMPTS: tuple[DemoPrompt, ...] = (
     DemoPrompt(
         "Late critical shipment",
@@ -71,6 +99,34 @@ DEMO_PROMPTS: tuple[DemoPrompt, ...] = (
 
 def format_prompt_option(prompt: DemoPrompt) -> str:
     return prompt.label
+
+
+def evidence_from_result(result: dict[str, Any]) -> list[dict[str, str]]:
+    seen: set[str] = set()
+    evidence: list[dict[str, str]] = []
+    for tool_name in _tool_names_from_result(result):
+        if tool_name in seen:
+            continue
+        seen.add(tool_name)
+        label, source = TOOL_EVIDENCE.get(tool_name, ("Agent tool", tool_name))
+        evidence.append({"capability": label, "source": source, "tool": tool_name})
+    return evidence
+
+
+def thread_state_summary(metadata: dict[str, Any]) -> dict[str, str]:
+    pending = metadata.get("pending_approval")
+    decision = metadata.get("decision")
+    if pending:
+        state = "Paused for approval"
+    elif decision:
+        state = f"Resumed with {decision}"
+    else:
+        state = "Completed response"
+    return {
+        "Thread": str(metadata.get("thread_id", "unknown")),
+        "State": state,
+        "Checkpoint": "MongoDBSaver",
+    }
 
 
 def mode_name(demo_mode: str) -> str:
@@ -139,3 +195,51 @@ def error_guidance(error_name: str, demo_mode: str) -> list[str]:
             "If this happened during approval, reuse the same Thread ID that created the pending request."
         )
     return guidance
+
+
+def _tool_names_from_result(result: dict[str, Any]) -> list[str]:
+    names: list[str] = []
+    for message in result.get("messages", []):
+        for call in _message_tool_calls(message):
+            name = _tool_call_name(call)
+            if name:
+                names.append(name)
+        name = _message_field(message, "name")
+        if name and _message_field(message, "type") == "tool":
+            names.append(str(name))
+    for interrupt in result.get("__interrupt__", []):
+        value = getattr(interrupt, "value", None)
+        if value is None and isinstance(interrupt, dict):
+            value = interrupt.get("value")
+        if isinstance(value, dict):
+            for request in value.get("action_requests", []):
+                if isinstance(request, dict) and request.get("name"):
+                    names.append(str(request["name"]))
+    return names
+
+
+def _message_tool_calls(message: Any) -> list[Any]:
+    tool_calls = _message_field(message, "tool_calls")
+    if isinstance(tool_calls, list):
+        return tool_calls
+    additional = _message_field(message, "additional_kwargs")
+    if isinstance(additional, dict) and isinstance(additional.get("tool_calls"), list):
+        return additional["tool_calls"]
+    return []
+
+
+def _tool_call_name(call: Any) -> str:
+    if isinstance(call, dict):
+        if call.get("name"):
+            return str(call["name"])
+        function = call.get("function")
+        if isinstance(function, dict) and function.get("name"):
+            return str(function["name"])
+    return str(getattr(call, "name", "") or "")
+
+
+def _message_field(message: Any, field: str) -> Any:
+    value = getattr(message, field, None)
+    if value is None and isinstance(message, dict):
+        value = message.get(field)
+    return value

@@ -2,6 +2,7 @@ from supply_chain_mongodb_agent.ui import (
     DEMO_PROMPTS,
     VALUE_PILLARS,
     error_guidance,
+    evidence_from_result,
     format_prompt_option,
     hero_summary,
     mode_metrics,
@@ -9,6 +10,7 @@ from supply_chain_mongodb_agent.ui import (
     mode_summary,
     readiness_status,
     readiness_summary,
+    thread_state_summary,
     workflow_intro,
 )
 
@@ -36,6 +38,57 @@ def test_format_prompt_option_uses_simple_label() -> None:
 
     assert option == DEMO_PROMPTS[0].label
     assert DEMO_PROMPTS[0].intent not in option
+
+
+def test_evidence_from_result_summarizes_tool_calls() -> None:
+    result = {
+        "messages": [
+            {
+                "tool_calls": [
+                    {"name": "get_supply_chain_snapshot"},
+                    {"name": "recall_prior_incidents"},
+                    {"name": "get_supply_chain_snapshot"},
+                ]
+            }
+        ]
+    }
+
+    evidence = evidence_from_result(result)
+
+    assert evidence == [
+        {
+            "capability": "Operational data",
+            "source": "shipments, parts, inventory, purchase_orders, suppliers",
+            "tool": "get_supply_chain_snapshot",
+        },
+        {
+            "capability": "Prior incidents",
+            "source": "agent_episodes",
+            "tool": "recall_prior_incidents",
+        },
+    ]
+
+
+def test_evidence_from_result_includes_approval_interrupts() -> None:
+    result = {
+        "__interrupt__": [
+            {"value": {"action_requests": [{"name": "submit_action_for_approval"}]}}
+        ]
+    }
+
+    assert evidence_from_result(result)[0]["source"] == "action_drafts"
+
+
+def test_thread_state_summary_describes_checkpoint_state() -> None:
+    assert thread_state_summary({"thread_id": "t-1"})["State"] == "Completed response"
+    assert (
+        thread_state_summary({"thread_id": "t-1", "pending_approval": True})["State"]
+        == "Paused for approval"
+    )
+    assert (
+        thread_state_summary({"thread_id": "t-1", "decision": "reject"})["State"]
+        == "Resumed with reject"
+    )
 
 
 def test_mode_copy_is_demo_friendly() -> None:
