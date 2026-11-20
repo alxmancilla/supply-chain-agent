@@ -1,17 +1,22 @@
 # Demo Script
 
-This is an **Atlas-only** demo path that uses MongoDB Atlas, Atlas Vector Search,
-rerank, LangGraph state, memory, and a configured LLM.
+This is an **Atlas-only** healthcare distribution demo path that uses MongoDB
+Atlas, Atlas Vector Search, rerank, LangGraph state, memory, and a configured LLM.
 
 ## What You Are About to Show
 
-In plain English, this demo shows an AI agent solving a supply-chain disruption:
+In plain English, this demo shows an AI agent solving a healthcare distribution
+disruption:
 
-1. A user asks about a late shipment, shortage, or quality hold.
-2. The agent checks operational facts such as shipments, inventory, suppliers, and POs.
+1. A user asks about a late shipment, allocation shortage, or cold-chain hold.
+2. The agent checks operational facts such as shipments, inventory, manufacturers/distribution partners, and POs.
 3. It retrieves relevant policies, playbooks, memories, and prior incidents.
 4. It recommends a next step with supporting evidence.
 5. If the next step changes business state, it drafts the action and pauses for human approval.
+
+The story is McKesson-style healthcare distribution, but it intentionally avoids
+PHI, patient-specific details, and clinical recommendations. The agent supports
+operations decisions; humans remain responsible for final actions.
 
 MongoDB matters because the connected demo uses it for live-style business data,
 retrieval, long-term memory, LangGraph checkpoints, and pending approval records.
@@ -89,7 +94,7 @@ uv run supply-chain-agent approve --thread-id atlas-demo-001
 Start the UI:
 
 ```bash
-uv run supply-chain-agent serve
+uv run supply-chain-agent serve --wait-indexes-seconds 300
 ```
 
 Use `serve` for every backend restart. It runs the Atlas validation task before
@@ -109,7 +114,7 @@ Demo flow:
 
 In Atlas mode, the agent uses these pieces:
 
-- `get_supply_chain_snapshot`: reads shipment, part, supplier, PO, and inventory data.
+- `get_supply_chain_snapshot`: reads shipment, product, manufacturer/distribution partner, PO, and inventory data.
 - `search_supply_chain_knowledge`: retrieves SOPs, contracts, and playbooks with Atlas Vector Search.
 - `recall_planner_memory`: retrieves agent/user-scoped long-term memory.
 - `recall_prior_incidents`: retrieves agent/user-scoped resolved incidents.

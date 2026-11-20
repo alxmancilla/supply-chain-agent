@@ -4,7 +4,7 @@ from supply_chain_mongodb_agent.workflow import workflow_diagram_dot, workflow_n
 def test_workflow_diagram_includes_core_agent_components() -> None:
     dot = workflow_diagram_dot()
 
-    assert "Atlas-only supply-chain resolution agent" in dot
+    assert "Atlas-only healthcare distribution resolution agent" in dot
     assert "LangGraph" in dot
     assert "Deep Agents" in dot
     assert "MongoDBSaver" in dot

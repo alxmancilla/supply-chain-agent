@@ -16,11 +16,15 @@ def test_seed_documents_are_tenant_agent_and_user_scoped() -> None:
     assert docs["agent_episodes"][0]["user_id"] == "u1"
 
 
-def test_knowledge_docs_include_supply_chain_playbook() -> None:
+def test_knowledge_docs_include_healthcare_distribution_playbook() -> None:
     docs = knowledge_documents(Settings())
-    assert any("Tier-1" in doc["text"] for doc in docs)
+    assert any("critical healthcare products" in doc["text"] for doc in docs)
 
 
 def test_episode_docs_cover_multiple_incident_types() -> None:
     incident_types = {doc["incident_type"] for doc in episode_documents(Settings())}
-    assert {"logistics_delay", "quality_hold", "low_risk_delay"} <= incident_types
+    assert {
+        "logistics_delay",
+        "temperature_excursion_hold",
+        "low_risk_delay",
+    } <= incident_types

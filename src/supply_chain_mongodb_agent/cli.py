@@ -22,17 +22,19 @@ from supply_chain_mongodb_agent.seed import seed_demo_data
 from supply_chain_mongodb_agent.settings import get_settings
 from supply_chain_mongodb_agent.validation import validate_atlas_setup
 
-app = typer.Typer(help="Supply-chain MongoDB + LangChain agent demo")
+app = typer.Typer(help="Healthcare distribution MongoDB + LangChain agent demo")
 console = Console()
 
 
 def _print_validation_report(report: dict[str, Any]) -> None:
     console.print("[bold]Atlas restart validation[/bold]")
-    console.print({
-        "btree_indexes_checked": len(report["btree_indexes"]),
-        "seeded": report["seeded"],
-        "vector_indexes": report["search_indexes"],
-    })
+    console.print(
+        {
+            "btree_indexes_checked": len(report["btree_indexes"]),
+            "seeded": report["seeded"],
+            "vector_indexes": report["search_indexes"],
+        }
+    )
     for check in report["checks"]:
         icon = "✅" if check["ok"] else "❌"
         console.print(f"{icon} {check['name']}: {check['detail']}")
@@ -40,20 +42,26 @@ def _print_validation_report(report: dict[str, Any]) -> None:
 
 @app.command()
 def demo(
-    thread_id: str = typer.Option("demo-thread", "--thread-id", help="Thread ID used for state and approval resume."),
+    thread_id: str = typer.Option(
+        "demo-thread",
+        "--thread-id",
+        help="Thread ID used for state and approval resume.",
+    ),
 ) -> None:
     """Run a guided demo walkthrough."""
     settings = get_settings()
     client = get_client(settings)
     agent = build_agent(client, settings)
     questions = [
-        "Shipment SH-1043 for BRK-22 is 6 days late. What are my options?",
-        "Have we handled a BRK-22 port delay before? What worked last time?",
-        "Draft an approval request to expedite SH-1043 with premium freight because BRK-22 has under 3 days of cover.",
+        "Shipment SH-1043 for NDC-1043 is 6 days late and DC cover is under 48 hours. What are my options?",
+        "Have we handled an NDC-1043 allocation delay before? What worked last time?",
+        "Draft an approval request to expedite SH-1043 with cold-chain courier because NDC-1043 has under 48 hours of DC cover.",
     ]
-    console.print("[bold]Supply Chain Agent Atlas demo[/bold]")
+    console.print("[bold]Healthcare Distribution Agent Atlas demo[/bold]")
     console.print(f"Thread: {thread_id}")
-    console.print("Using MongoDB Atlas, Atlas retrieval, LangGraph state, memory, and your configured LLM.\n")
+    console.print(
+        "Using MongoDB Atlas, Atlas retrieval, LangGraph state, memory, and your configured LLM.\n"
+    )
     try:
         for question in questions:
             console.print(f"[bold cyan]You:[/bold cyan] {question}")
@@ -61,11 +69,15 @@ def demo(
                 {"messages": [{"role": "user", "content": question}]},
                 config={"configurable": {"thread_id": thread_id}},
             )
-            console.print(f"[bold green]Agent:[/bold green] {extract_latest_text(result) or format_pending_approval(result)}\n")
+            console.print(
+                f"[bold green]Agent:[/bold green] {extract_latest_text(result) or format_pending_approval(result)}\n"
+            )
         console.print("[bold]Approve the pending action:[/bold]")
         console.print(f"uv run supply-chain-agent approve --thread-id {thread_id}")
         console.print("\n[bold]Ask your own question:[/bold]")
-        console.print('uv run supply-chain-agent ask "Shipment SH-3110 is delayed. Do we need premium freight?"')
+        console.print(
+            'uv run supply-chain-agent ask "Shipment SH-3110 is delayed. Do we need expedited courier?"'
+        )
     finally:
         if client is not None:
             client.close()
@@ -78,7 +90,9 @@ def validate(
         "--wait-indexes-seconds",
         help="Seconds to wait for Atlas Vector Search indexes to become queryable.",
     ),
-    poll_seconds: int = typer.Option(10, "--poll-seconds", help="Seconds between readiness checks."),
+    poll_seconds: int = typer.Option(
+        10, "--poll-seconds", help="Seconds between readiness checks."
+    ),
 ) -> None:
     """Prepare Atlas data/indexes and verify readiness without printing secrets."""
     report = validate_atlas_setup(
@@ -94,7 +108,9 @@ def validate(
 @app.command()
 def serve(
     port: int = typer.Option(8501, "--port", help="Streamlit server port."),
-    address: str = typer.Option("localhost", "--address", help="Streamlit server address."),
+    address: str = typer.Option(
+        "localhost", "--address", help="Streamlit server address."
+    ),
     wait_indexes_seconds: int = typer.Option(
         180,
         "--wait-indexes-seconds",
@@ -149,7 +165,7 @@ def indexes() -> None:
 
 @app.command()
 def ask(question: str, thread_id: str = "demo-thread") -> None:
-    """Ask the agent a supply-chain question."""
+    """Ask the agent a healthcare distribution question."""
     settings = get_settings()
     client = get_client(settings)
     agent = build_agent(client, settings)
@@ -188,15 +204,17 @@ def smoke() -> None:
         "responses_api": settings.effective_llm_use_responses_api,
         "api_key_configured": settings.llm_api_key_configured,
     }
-    console.print({
-        "demo_mode": settings.demo_mode,
-        "db": settings.mongodb_db,
-        "realm_id": settings.realm_id,
-        "agent_id": settings.agent_id,
-        "llm": llm_status,
-        "embedding_model": settings.atlas_embedding_model,
-        "rerank_model": settings.atlas_rerank_model,
-    })
+    console.print(
+        {
+            "demo_mode": settings.demo_mode,
+            "db": settings.mongodb_db,
+            "realm_id": settings.realm_id,
+            "agent_id": settings.agent_id,
+            "llm": llm_status,
+            "embedding_model": settings.atlas_embedding_model,
+            "rerank_model": settings.atlas_rerank_model,
+        }
+    )
 
 
 @app.command()

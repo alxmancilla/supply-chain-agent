@@ -58,7 +58,7 @@ def test_evidence_from_result_summarizes_tool_calls() -> None:
     assert evidence == [
         {
             "capability": "Operational data",
-            "source": "shipments, parts, inventory, purchase_orders, suppliers",
+            "source": "shipments, products, inventory, purchase_orders, manufacturers",
             "tool": "get_supply_chain_snapshot",
         },
         {
@@ -95,6 +95,7 @@ def test_mode_copy_is_demo_friendly() -> None:
     assert mode_name("atlas") == "Atlas connected"
     assert "MongoDB Atlas" in mode_summary("atlas")
     assert "MongoDB Atlas" in hero_summary("atlas")
+    assert "healthcare distribution" in hero_summary("atlas")
     assert "MongoDB Atlas and LangChain" in workflow_intro("atlas")
 
 

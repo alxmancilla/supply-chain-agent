@@ -1,9 +1,9 @@
-# Supply Chain Resolution Agent
+# Healthcare Distribution Resolution Agent
 
-A hands-on demo of a stateful AI agent for supply-chain disruption resolution.
-The agent reads operational data, retrieves policies and prior incidents,
-remembers planner preferences, and pauses for human approval before drafting a
-business-state change.
+A hands-on demo of a stateful AI agent for healthcare distribution disruption
+resolution. The agent reads operational data, retrieves policies and prior
+incidents, remembers planner preferences, and pauses for human approval before
+drafting an allocation, expedite, or other business-state change.
 
 This project is intentionally demo-first: start it, ask a realistic disruption
 question, inspect the answer, then open the code to see how the pieces fit
@@ -14,13 +14,13 @@ you are presenting the project, start with `DEMO.md`.
 
 ## New to agents, MongoDB, or LangChain?
 
-Think of this demo as a workflow that lets an AI assistant solve a supply-chain
-disruption with guardrails:
+Think of this demo as a workflow that lets an AI assistant solve a healthcare
+distribution disruption with guardrails:
 
 - An **agent** is an LLM-driven workflow that can decide when to call tools,
   inspect evidence, and produce a recommendation.
 - A **tool** is a safe function the agent can call, such as reading shipment
-  status or drafting an approval request.
+  status, inventory cover, or drafting an approval request.
 - **Retrieval** means finding the most relevant policies, playbooks, memories,
   or prior incidents before the agent answers.
 - **Memory** means the agent can use prior planner preferences and resolved
@@ -39,7 +39,8 @@ The frameworks and database pieces have specific jobs:
 
 ## What it demonstrates
 
-- Operational supply-chain data: suppliers, parts, inventory, shipments, POs.
+- Operational healthcare distribution data: manufacturers/distribution partners,
+  products/SKUs, inventory, shipments, and POs.
 - Agent tools that separate reads from state-changing actions.
 - Tenant and actor scoping with `realm_id`, `agent_id`, and `user_id`.
 - Human-in-the-loop approval for business-state changes.
@@ -98,7 +99,7 @@ uv run supply-chain-agent demo
 Ask your own question:
 
 ```bash
-uv run supply-chain-agent ask "Shipment SH-1043 for BRK-22 is 6 days late. What are my options?"
+uv run supply-chain-agent ask "Shipment SH-1043 for NDC-1043 is 6 days late and DC cover is under 48 hours. What are my options?"
 ```
 
 Or start the Streamlit UI:
@@ -157,7 +158,7 @@ LLM_USE_RESPONSES_API=true
 Try this in either CLI or Streamlit:
 
 ```bash
-uv run supply-chain-agent ask "Draft an approval request to expedite SH-1043 with premium freight because BRK-22 has under 3 days of cover."
+uv run supply-chain-agent ask "Draft an approval request to expedite SH-1043 with cold-chain courier because NDC-1043 has under 48 hours of DC cover."
 ```
 
 In Streamlit, keep the same Thread ID and click either:
@@ -178,22 +179,22 @@ thread.
 
 ### Operational data + recommendations
 
-- `Shipment SH-1043 for BRK-22 is 6 days late. What are my options?`
-- `What is the risk for shipment SH-2048 and should we use the battery cells?`
-- `Shipment SH-3110 is delayed. Do we need premium freight?`
+- `Shipment SH-1043 for NDC-1043 is 6 days late and DC cover is under 48 hours. What are my options?`
+- `What is the risk for shipment SH-2048 and should we release the cold-chain lot?`
+- `Shipment SH-3110 is delayed. Do we need expedited courier?`
 
 ### Knowledge, memory, and prior incidents
 
-- `Find the policy for Tier-1 shortages with less than three days of cover.`
-- `Which contract terms apply when SUP-BAT has a quality hold?`
-- `What approved alternate exists for BRK-22? Cite the source IDs.`
-- `Do I have any planner preferences relevant to premium freight?`
-- `Have we handled a BRK-22 port delay before? What worked last time?`
-- `Compare this CELL-9 quality hold with prior incidents and recommend next steps.`
+- `Find the policy for critical healthcare products with less than 48 hours of DC cover.`
+- `Which contract terms apply when SUP-COLD has a temperature excursion hold?`
+- `What approved alternate fulfillment path exists for NDC-1043? Cite the source IDs.`
+- `Do I have any planner preferences relevant to cold-chain expedite decisions?`
+- `Have we handled an NDC-1043 allocation delay before? What worked last time?`
+- `Compare this COLD-2048 temperature excursion hold with prior incidents and recommend next steps.`
 
 ### Cross-capability story
 
-- `For SH-1043, use live data, playbooks, planner memory, and prior incidents to recommend the lowest-risk action.`
+- `For SH-1043, use live data, playbooks, planner memory, and prior incidents to recommend the lowest-risk healthcare distribution action.`
 - `For SH-2048, explain the operational state, relevant SOP, similar episode, and whether approval is required.`
 
 ## Best demo path

@@ -26,7 +26,9 @@ from supply_chain_mongodb_agent.ui import (
 )
 from supply_chain_mongodb_agent.workflow import workflow_diagram_dot
 
-st.set_page_config(page_title="Supply Chain Agent", page_icon="🚚", layout="wide")
+st.set_page_config(
+    page_title="Healthcare Distribution Agent", page_icon="🚚", layout="wide"
+)
 
 
 def _inject_styles() -> None:
@@ -206,8 +208,8 @@ def _render_chat_panel() -> None:
     if not st.session_state.chat_history:
         with st.chat_message("assistant"):
             st.markdown(
-                "Ask me about a shipment, part, planner memory, prior incident, "
-                "or approval workflow."
+                "Ask me about a shipment, healthcare product, planner memory, "
+                "prior incident, or approval workflow."
             )
         return
 
@@ -300,7 +302,7 @@ st.markdown(
       <span class="pill">MongoDB + LangChain</span>
       <span class="pill">Atlas-ready</span>
       <span class="pill">Human-in-the-loop</span>
-      <h1>🚚 Supply Chain Resolution Agent</h1>
+      <h1>🚚 Healthcare Distribution Resolution Agent</h1>
       <p class="muted">{hero_summary(settings.demo_mode)}</p>
     </div>
     """,
@@ -362,7 +364,9 @@ with ask_tab:
 
     st.divider()
     _render_chat_panel()
-    if question := st.chat_input("Ask about a shipment, part, memory, or approval..."):
+    if question := st.chat_input(
+        "Ask about a shipment, product, memory, or approval..."
+    ):
         _run_agent(question, thread_id)
         st.rerun()
 

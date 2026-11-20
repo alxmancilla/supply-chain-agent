@@ -5,7 +5,7 @@ digraph supply_chain_agent {
   node [shape=box, style="rounded,filled", color="#94a3b8", fillcolor="#f8fafc", fontname="Helvetica", fontsize=11, margin="0.14,0.08"];
   edge [color="#2563eb", arrowsize="0.75", fontname="Helvetica", fontsize=10, penwidth=2];
 
-  title [label=<<B>Atlas-only supply-chain resolution agent</B><BR/><FONT POINT-SIZE="9">MongoDB Atlas + LangGraph + Deep Agents + OpenAI-compatible LLM</FONT>>, shape=plain, fontsize=14];
+  title [label=<<B>Atlas-only healthcare distribution resolution agent</B><BR/><FONT POINT-SIZE="9">MongoDB Atlas + LangGraph + Deep Agents + OpenAI-compatible LLM</FONT>>, shape=plain, fontsize=14];
 
   subgraph cluster_entry {
     label="1. Demo entry + setup";
@@ -31,7 +31,7 @@ digraph supply_chain_agent {
     reason [label=<<B>Reason with LLM</B><BR/><FONT POINT-SIZE="9">Deep Agents plans and uses tools</FONT>>, fillcolor="#fae8ff"];
     decision [label=<<B>Decision point</B><BR/><FONT POINT-SIZE="9">Answer now or draft an action?</FONT>>, shape=diamond, fillcolor="#fef9c3", margin="0.18,0.08"];
     answer [label=<<B>Read-only answer</B><BR/><FONT POINT-SIZE="9">Recommendation with evidence</FONT>>, fillcolor="#dbeafe"];
-    draft [label=<<B>Draft action</B><BR/><FONT POINT-SIZE="9">Premium freight / supplier escalation</FONT>>, fillcolor="#fee2e2"];
+    draft [label=<<B>Draft action</B><BR/><FONT POINT-SIZE="9">Cold-chain expedite / allocation request</FONT>>, fillcolor="#fee2e2"];
     approval [label=<<B>Human approval interrupt</B><BR/><FONT POINT-SIZE="9">Thread pauses before business-state change</FONT>>, fillcolor="#fecaca"];
     resume [label=<<B>Resume same thread</B><BR/><FONT POINT-SIZE="9">Approve or reject decision</FONT>>, fillcolor="#ffedd5"];
     persist [label=<<B>Persist outcome</B><BR/><FONT POINT-SIZE="9">Checkpoint + memory + action history</FONT>>, fillcolor="#e0e7ff"];
@@ -43,7 +43,7 @@ digraph supply_chain_agent {
     fillcolor="#f0fdf4";
     style="rounded,filled";
 
-    ops [label=<<B>Operational collections</B><BR/><FONT POINT-SIZE="9">shipments, inventory, suppliers</FONT>>, fillcolor="#dcfce7"];
+    ops [label=<<B>Operational collections</B><BR/><FONT POINT-SIZE="9">shipments, inventory, manufacturers</FONT>>, fillcolor="#dcfce7"];
     knowledge [label=<<B>Atlas Vector Search</B><BR/><FONT POINT-SIZE="9">autoEmbed knowledge + native rerank</FONT>>, fillcolor="#ccfbf1"];
     memory [label=<<B>MongoDBStore memory</B><BR/><FONT POINT-SIZE="9">agent_memories + agent_episodes</FONT>>, fillcolor="#dcfce7"];
     checkpoints [label=<<B>MongoDBSaver checkpoints</B><BR/><FONT POINT-SIZE="9">Durable LangGraph thread state</FONT>>, fillcolor="#e0e7ff"];

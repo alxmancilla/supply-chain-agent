@@ -26,7 +26,9 @@ def test_memory_pipeline_is_agent_and_user_scoped() -> None:
 
 def test_episode_pipeline_is_agent_and_user_scoped() -> None:
     settings = Settings(realm_id="r1", agent_id="a1", user_id="u1")
-    vector = episode_pipeline("prior BRK-22 delay", settings)[0]["$vectorSearch"]
+    vector = episode_pipeline("prior NDC-1043 allocation delay", settings)[0][
+        "$vectorSearch"
+    ]
     assert vector["index"] == "agent_episodes_autoembed"
     assert vector["path"] == "content"
     assert vector["filter"] == {"realm_id": "r1", "agent_id": "a1", "user_id": "u1"}

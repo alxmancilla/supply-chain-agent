@@ -32,7 +32,7 @@ VALUE_PILLARS: tuple[tuple[str, str], ...] = (
 TOOL_EVIDENCE: dict[str, tuple[str, str]] = {
     "get_supply_chain_snapshot": (
         "Operational data",
-        "shipments, parts, inventory, purchase_orders, suppliers",
+        "shipments, products, inventory, purchase_orders, manufacturers",
     ),
     "search_supply_chain_knowledge": (
         "Atlas Vector Search",
@@ -60,38 +60,38 @@ TOOL_EVIDENCE: dict[str, tuple[str, str]] = {
 DEMO_PROMPTS: tuple[DemoPrompt, ...] = (
     DemoPrompt(
         "Late critical shipment",
-        "Shipment SH-1043 for BRK-22 is 6 days late. What are my options?",
-        "Prioritize recovery options with supporting evidence.",
+        "Shipment SH-1043 for NDC-1043 is 6 days late and DC cover is under 48 hours. What are my options?",
+        "Prioritize healthcare distribution recovery options with supporting evidence.",
     ),
     DemoPrompt(
         "Prior incident recall",
-        "Have we handled a BRK-22 port delay before? What worked last time?",
+        "Have we handled an NDC-1043 allocation delay before? What worked last time?",
         "Show long-term memory and prior incident retrieval.",
     ),
     DemoPrompt(
         "Planner memory",
-        "Do I have any planner preferences relevant to premium freight?",
+        "Do I have any planner preferences relevant to cold-chain expedite decisions?",
         "Show user-scoped memory stored and retrieved from MongoDB Atlas.",
     ),
     DemoPrompt(
-        "Quality hold comparison",
-        "Compare this CELL-9 quality hold with prior incidents and recommend next steps.",
+        "Cold-chain hold comparison",
+        "Compare this COLD-2048 temperature excursion hold with prior incidents and recommend next steps.",
         "Compare current disruption patterns against historical episodes.",
     ),
     DemoPrompt(
-        "Premium freight decision",
-        "Shipment SH-3110 is delayed. Do we need premium freight?",
+        "Expedite decision",
+        "Shipment SH-3110 is delayed. Do we need expedited courier?",
         "Explain whether a state-changing action is justified.",
     ),
     DemoPrompt(
         "Full platform story",
-        "For SH-1043, use live data, playbooks, planner memory, and prior incidents to recommend the lowest-risk action.",
+        "For SH-1043, use live data, playbooks, planner memory, and prior incidents to recommend the lowest-risk healthcare distribution action.",
         "Show operational data, vector search, memory, and agent reasoning together.",
     ),
     DemoPrompt(
         "Approval workflow",
-        "Draft an approval request to expedite SH-1043 with premium freight because "
-        "BRK-22 has under 3 days of cover.",
+        "Draft an approval request to expedite SH-1043 with cold-chain courier because "
+        "NDC-1043 has under 48 hours of DC cover.",
         "Demonstrate human-in-the-loop approval before action.",
     ),
 )
@@ -139,9 +139,10 @@ def mode_summary(demo_mode: str) -> str:
 
 def hero_summary(demo_mode: str) -> str:
     return (
-        "A MongoDB + LangChain demo: MongoDB Atlas stores operational data, "
-        "vector-search knowledge, memory, checkpoints, and approval-gated action "
-        "drafts while LangChain and LangGraph orchestrate the agent workflow."
+        "A MongoDB + LangChain healthcare distribution demo: MongoDB Atlas stores "
+        "operational data, vector-search knowledge, memory, checkpoints, and "
+        "approval-gated action drafts while LangChain and LangGraph orchestrate "
+        "the agent workflow."
     )
 
 
@@ -156,9 +157,9 @@ def mode_metrics(demo_mode: str) -> tuple[tuple[str, str], ...]:
 
 def workflow_intro(demo_mode: str) -> str:
     return (
-        "This shows how MongoDB Atlas and LangChain work together: tools read Atlas data, "
-        "Vector Search retrieves context, LangGraph checkpoints state, and human approval "
-        "resumes the same workflow."
+        "This shows how MongoDB Atlas and LangChain work together for healthcare "
+        "distribution: tools read Atlas data, Vector Search retrieves context, "
+        "LangGraph checkpoints state, and human approval resumes the same workflow."
     )
 
 
