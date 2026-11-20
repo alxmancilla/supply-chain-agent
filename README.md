@@ -104,7 +104,7 @@ uv run supply-chain-agent ask "Shipment SH-1043 for BRK-22 is 6 days late. What 
 Or start the Streamlit UI:
 
 ```bash
-uv run supply-chain-agent serve
+uv run supply-chain-agent serve --wait-indexes-seconds 300
 ```
 
 Use `serve` for every backend restart. It runs the same Atlas validation task
